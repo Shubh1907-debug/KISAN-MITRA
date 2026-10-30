@@ -825,7 +825,20 @@ async function handleTransporters(req, res, url) {
   } catch (e) { send(res, 500, { error: String(e.message || e) }); }
 }
 
+// Baseline security headers (same values as netlify.toml). Inline scripts/styles are used by the page, hence 'unsafe-inline'.
+const SECURITY_HEADERS = {
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'geolocation=(self), microphone=(self), camera=(self)',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; " +
+    "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: blob: https://unpkg.com https://*.tile.openstreetmap.org; connect-src 'self' https://nominatim.openstreetmap.org; " +
+    "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+};
+
 const server = http.createServer((req, res) => {
+  for (const k in SECURITY_HEADERS) res.setHeader(k, SECURITY_HEADERS[k]);
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/api/transporters' || url.pathname.startsWith('/api/transporters/')) return handleTransporters(req, res, url);
   if (req.method === 'GET' && url.pathname === '/api/route') return handleRoute(req, res, url);
