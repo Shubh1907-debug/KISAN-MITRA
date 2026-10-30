@@ -1,0 +1,2542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kisan Mitra — Mandi Bhaav &amp; AI Farm Advisor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/i18n.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/netreturn.js"></script>
+<script src="/chart.umd.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js';document.head.appendChild(s);"></script>
+<style>
+  :root{
+    --ink:#1A2B1E;
+    --ink-soft:#41503f;
+    --paper:#F5EEDC;
+    --paper-2:#ECE1BE;
+    --card:#FFFDF6;
+    --field:#25523A;
+    --field-dark:#123522;
+    --field-tint:#E4EEE1;
+    --turmeric:#E2A33B;
+    --turmeric-dark:#C4842020;
+    --soil:#9C5330;
+    --chalk:#FBF3DE;
+    --board:#1C1B18;
+    --rise:#3F7D4A;
+    --fall:#B23A2E;
+    --line: rgba(26,43,30,0.15);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 14px 34px rgba(20,28,20,0.14);
+    --shadow-sm: 0 4px 12px rgba(20,28,20,0.10);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Mukta',system-ui,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Zilla Slab',Georgia,serif;
+    margin:0 0 .4em 0;
+    color:var(--field-dark);
+    letter-spacing:.2px;
+  }
+  .num, .mono{ font-family:'IBM Plex Mono',monospace; }
+  a{color:inherit;}
+  button{font-family:inherit;}
+  img,svg{display:block;}
+  .hidden{display:none !important;}
+  .container{max-width:1160px;margin:0 auto;padding:0 24px;}
+  :focus-visible{outline:3px solid var(--turmeric); outline-offset:2px; border-radius:4px;}
+
+  /* ---------- NAV ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:var(--field);
+    color:var(--chalk);
+    border-bottom:3px solid var(--turmeric);
+  }
+  .topbar-inner{
+    max-width:1160px;margin:0 auto;padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;cursor:pointer;background:none;border:none;color:inherit;padding:0;}
+  .brand svg{width:34px;height:34px;flex:none;}
+  .brand-text{display:flex;flex-direction:column;line-height:1.1;text-align:left;}
+  .brand-text .name{font-family:'Zilla Slab',serif;font-weight:700;font-size:1.28rem;color:var(--chalk);}
+  .brand-text .tag{font-size:.72rem;color:var(--paper-2);letter-spacing:.3px;}
+  .nav-actions{display:flex;align-items:center;gap:12px;}
+  .pill-btn{
+    border:1.5px solid rgba(251,243,222,0.4);
+    background:transparent;color:var(--chalk);
+    padding:9px 18px;border-radius:999px;font-size:.92rem;font-weight:600;
+    cursor:pointer;transition:.15s ease;
+  }
+  .pill-btn:hover{background:rgba(251,243,222,0.12);}
+  .pill-btn.solid{
+    background:var(--turmeric);border-color:var(--turmeric);color:#241a06;
+  }
+  .pill-btn.solid:hover{background:#eeb257;}
+  .user-chip{display:flex;align-items:center;gap:10px;font-size:.92rem;}
+  .user-chip strong{color:var(--turmeric);}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:64px 0 40px;}
+  .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:.78rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    color:var(--soil);background:var(--field-tint);
+    padding:6px 14px;border-radius:999px;margin-bottom:18px;
+  }
+  .hero h1{font-size:2.6rem;line-height:1.15;max-width:11.5ch;}
+  .hero h1 .hi{display:block;color:var(--field);font-size:1.05em;}
+  .hero p.sub{font-size:1.08rem;color:var(--ink-soft);max-width:52ch;margin-bottom:26px;}
+  .cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:30px;}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:13px 24px;border-radius:10px;font-weight:700;font-size:.98rem;
+    border:2px solid transparent;cursor:pointer;transition:.15s ease;
+  }
+  .btn-primary{background:var(--turmeric);color:#241a06;}
+  .btn-primary:hover{background:#eeb257;transform:translateY(-1px);}
+  .btn-ghost{background:transparent;border-color:var(--field);color:var(--field);}
+  .btn-ghost:hover{background:var(--field-tint);}
+  .stat-row{display:flex;gap:26px;flex-wrap:wrap;}
+  .stat{display:flex;flex-direction:column;}
+  .stat .n{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:1.35rem;color:var(--field-dark);}
+  .stat .l{font-size:.78rem;color:var(--ink-soft);}
+
+  /* ---------- SIGNBOARD TICKER (signature element) ---------- */
+  .board-wrap{display:flex;justify-content:center;}
+  .board{
+    width:100%;max-width:380px;
+    background:linear-gradient(180deg,#1f4d2f,#123522);
+    border:10px solid var(--turmeric);
+    border-radius:10px;
+    box-shadow:var(--shadow), inset 0 0 0 2px rgba(0,0,0,.25);
+    padding:22px 22px 26px;
+    position:relative;
+    color:var(--chalk);
+  }
+  .board::before{
+    content:"";position:absolute;top:-26px;left:50%;transform:translateX(-50%);
+    width:14px;height:26px;background:#8a6a2a;border-radius:3px;
+  }
+  .board-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:2px dashed rgba(251,243,222,.35);padding-bottom:10px;margin-bottom:16px;
+  }
+  .board-head .label{font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--paper-2);}
+  .board-head .live{font-size:.68rem;color:var(--turmeric);font-weight:700;display:flex;align-items:center;gap:5px;}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:#7bd88f;box-shadow:0 0 0 0 rgba(123,216,143,.7);animation:pulse 1.8s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(123,216,143,.6);}70%{box-shadow:0 0 0 8px rgba(123,216,143,0);}100%{box-shadow:0 0 0 0 rgba(123,216,143,0);}}
+  #tickerCrop{
+    font-family:'Zilla Slab',serif;font-weight:700;font-size:1.5rem;
+    min-height:1.4em;
+  }
+  #tickerCropHi{color:var(--paper-2);font-size:.95rem;font-family:'Mukta',sans-serif;margin-bottom:14px;display:block;}
+  .board-price{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
+  .board-price .amt{font-family:'IBM Plex Mono',monospace;font-size:2.3rem;font-weight:600;letter-spacing:.5px;}
+  .board-price .unit{font-size:.8rem;color:var(--paper-2);}
+  .board-change{font-family:'IBM Plex Mono',monospace;font-size:.9rem;font-weight:600;}
+  .board-change.up{color:#8be09a;}
+  .board-change.down{color:#f3a19a;}
+  .board-dots{display:flex;gap:6px;margin-top:18px;justify-content:center;}
+  .board-dots span{width:6px;height:6px;border-radius:50%;background:rgba(251,243,222,.3);}
+  .board-dots span.active{background:var(--turmeric);}
+  .board-fade{transition:opacity .25s ease;}
+  .board-fade.out{opacity:0;}
+  @media (prefers-reduced-motion: reduce){
+    .board-fade{transition:none;} .live-dot{animation:none;}
+  }
+
+  /* ---------- HOW IT HELPS strip ---------- */
+  .helps{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:48px 0;}
+  .helps h2{text-align:center;font-size:1.6rem;}
+  .helps > .container > p{text-align:center;color:var(--ink-soft);max-width:56ch;margin:0 auto 34px;}
+  .helps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
+  .help-card{
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:22px 18px;text-align:left;
+  }
+  .help-card .ic{width:38px;height:38px;color:var(--field);margin-bottom:12px;}
+  .help-card h3{font-size:1.02rem;margin-bottom:6px;}
+  .help-card p{font-size:.88rem;color:var(--ink-soft);margin:0;}
+
+  /* ---------- AUTH ---------- */
+  .auth-section{padding:64px 0;display:flex;justify-content:center;}
+  .auth-card{
+    width:100%;max-width:420px;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:34px 30px;
+  }
+  .auth-tabs{display:flex;background:var(--field-tint);border-radius:999px;padding:4px;margin-bottom:24px;}
+  .auth-tab{
+    flex:1;text-align:center;padding:10px 0;border-radius:999px;border:none;
+    background:transparent;font-weight:700;font-size:.92rem;color:var(--field-dark);cursor:pointer;
+  }
+  .auth-tab.active{background:var(--field);color:var(--chalk);}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:.84rem;font-weight:600;margin-bottom:6px;color:var(--ink-soft);}
+  .field input, .field select{
+    width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;
+    font-size:.96rem;background:var(--paper);color:var(--ink);font-family:inherit;
+  }
+  .field input:focus, .field select:focus{border-color:var(--field);}
+  .auth-submit{width:100%;margin-top:6px;}
+  .msg{font-size:.86rem;padding:10px 12px;border-radius:8px;margin-bottom:14px;display:none;}
+  .msg.error{display:block;background:#fbe6e3;color:var(--fall);}
+  .msg.success{display:block;background:#e4f2e6;color:var(--rise);}
+  .auth-foot{text-align:center;font-size:.82rem;color:var(--ink-soft);margin-top:16px;}
+  .link-btn{background:none;border:none;color:var(--field);font-weight:700;cursor:pointer;padding:0;font-size:inherit;text-decoration:underline;}
+
+  /* ---------- DASHBOARD ---------- */
+  .dash-welcome{background:var(--field);color:var(--chalk);padding:26px 0;}
+  .dash-welcome-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .dash-welcome h2{color:var(--chalk);font-size:1.4rem;margin-bottom:2px;}
+  .dash-welcome p{margin:0;color:var(--paper-2);font-size:.9rem;}
+
+  .tabs-nav{
+    display:flex;gap:6px;border-bottom:2px solid var(--line);
+    margin:28px 0 26px;overflow-x:auto;
+  }
+  .tab-btn{
+    display:flex;align-items:center;gap:8px;white-space:nowrap;
+    padding:12px 18px;background:none;border:none;border-bottom:3px solid transparent;
+    font-weight:700;font-size:.92rem;color:var(--ink-soft);cursor:pointer;
+  }
+  .tab-btn svg{width:18px;height:18px;}
+  .tab-btn.active{color:var(--field-dark);border-color:var(--turmeric);}
+
+  .panel{display:none;padding-bottom:70px;}
+  .panel.active{display:block;}
+  .panel-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px;box-shadow:var(--shadow-sm);margin-bottom:22px;
+  }
+  .panel-card h3{font-size:1.15rem;margin-bottom:4px;}
+  .panel-card .hint{color:var(--ink-soft);font-size:.87rem;margin-bottom:18px;}
+  .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;}
+  .row .field{flex:1;min-width:180px;margin-bottom:0;}
+  .chip-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .chip{
+    padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);
+    background:var(--paper);font-size:.86rem;font-weight:600;cursor:pointer;color:var(--ink-soft);
+  }
+  .chip.selected{background:var(--field);border-color:var(--field);color:var(--chalk);}
+  .btn-row{margin-top:20px;}
+
+  .price-list{display:flex;flex-direction:column;gap:10px;margin-top:20px;}
+  .price-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper);
+  }
+  .price-row.best{border-color:var(--turmeric);background:#fff7e8;}
+  .price-row .m-name{font-weight:700;display:flex;align-items:center;gap:8px;}
+  .badge{
+    background:var(--turmeric);color:#241a06;font-size:.68rem;font-weight:800;
+    padding:3px 9px;border-radius:999px;letter-spacing:.4px;text-transform:uppercase;
+  }
+  .price-row .p{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:1.05rem;}
+  .price-row .delta{font-size:.78rem;color:var(--ink-soft);margin-left:8px;}
+  .best-note{
+    margin-top:16px;padding:12px 14px;border-radius:8px;background:var(--field-tint);
+    font-size:.88rem;color:var(--field-dark);
+  }
+
+  .trend-stats{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:18px;}
+  .trend-stat .n{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:1.3rem;}
+  .trend-stat .n.up{color:var(--rise);} .trend-stat .n.down{color:var(--fall);}
+  .trend-stat .l{font-size:.78rem;color:var(--ink-soft);}
+  .chart-box{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;height:320px;}
+
+  .returns-result{
+    margin-top:22px;border-top:2px dashed var(--line);padding-top:18px;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
+  }
+  .rr-cell{background:var(--paper);border-radius:10px;padding:16px;border:1px solid var(--line);}
+  .rr-cell.net{background:var(--field);color:var(--chalk);border-color:var(--field);}
+  .rr-cell .l{font-size:.76rem;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);}
+  .rr-cell.net .l{color:var(--paper-2);}
+  .rr-cell .v{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1.25rem;margin-top:6px;}
+
+
+
+  /* ---------- BREAK-EVEN CHECK ---------- */
+  .be-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:10px;}
+  .be-grid .field{margin:0;}
+  .be-pair{display:flex;gap:8px;}
+  .be-pair input{min-width:0;}
+  .be-sec{margin-top:22px;padding-top:16px;border-top:1px dashed var(--line);}
+  .be-sec h4{margin:0 0 6px;font-family:'Zilla Slab',serif;color:var(--field-dark);font-size:1.05rem;}
+  .be-verdict{border-radius:12px;padding:16px 18px;margin-top:16px;border-left:6px solid #999;background:#f2efe6;}
+  .be-verdict h4{margin:0 0 6px;font-size:1.1rem;}
+  .be-verdict.pos{border-left-color:#2f7d4a;background:#e4f1e6;}
+  .be-verdict.unc{border-left-color:#E2A33B;background:#fbf0d6;}
+  .be-verdict.neg{border-left-color:#b5473a;background:#f7e1dd;}
+  .be-verdict.none{border-left-color:#8a8a8a;background:#ececec;}
+  .be-nums{display:flex;gap:26px;flex-wrap:wrap;margin:10px 0;}
+  .bm-wrap{overflow-x:auto;margin-top:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.bm-table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:760px}
+.bm-table th{text-align:right;padding:9px 10px;font-weight:700;white-space:nowrap}
+.bm-table th:nth-child(-n+2){text-align:left}
+.bm-table td{padding:9px 10px;border-top:1px solid var(--line);text-align:right;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.bm-table td:nth-child(-n+2){text-align:left;font-family:inherit}
+.bm-table tr.best{background:#e4f1e6!important}.bm-table tr.mine{background:#fbf0d6!important}
+.bm-table td.gain{color:#1f6b3a;font-weight:700}.bm-table td.loss{color:#a23a2e;font-weight:700}
+.bm-table .vh{display:block;font-size:.72rem;color:var(--ink-soft);font-family:inherit}
+.bm-tag{display:inline-block;font-size:.7rem;font-weight:700;border-radius:99px;padding:1px 8px;margin-left:6px;background:#0001;font-family:inherit}
+.bm-tag.b{background:#2f7d4a;color:#fff}.bm-tag.m{background:#E2A33B;color:#241a06}
+.bm-title{margin-top:16px;background:#f3f3f3;border:1px solid #ddd;border-bottom:0;border-radius:10px 10px 0 0;padding:12px 16px;color:#c8283d;font-weight:700;font-size:1.05rem}
+.bm-title small{display:block;color:var(--ink-soft);font-weight:400;font-size:.82rem;margin-top:3px}
+.bm-title + .bm-wrap{margin-top:0;border-radius:0 0 12px 12px}
+.bm-table th{background:#fff;color:#111;border-bottom:2px solid #ddd}
+.bm-table tbody tr:nth-child(even){background:#f1f1f1}
+.sales-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:center;margin-top:10px}
+.sales-pie{height:300px}
+@media (max-width:760px){.sales-grid{grid-template-columns:minmax(0,1fr)}.sales-pie{height:260px}}
+.sales-grid>*{min-width:0}.sales-table{overflow-x:auto}
+.sales-table table{width:100%;border-collapse:collapse;font-size:.9rem}.sales-table td,.sales-table th{padding:7px 8px;border-top:1px solid var(--line);text-align:right}
+.sales-table th{border-top:0;font-size:.78rem;color:var(--ink-soft)}.sales-table td:first-child,.sales-table th:first-child{text-align:left}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.sales-table tr.top{background:#e4f1e6;font-weight:700}
+.mt-row{display:grid;grid-template-columns:110px minmax(0,1fr) minmax(0,150px);gap:10px;align-items:center;padding:5px 0;font-size:.9rem}
+.mt-row.sel{font-weight:700}.mt-bar{height:12px;background:#0001;border-radius:6px;overflow:hidden}.mt-bar i{display:block;height:100%;background:#25523A}
+.mt-row.sel .mt-bar i{background:#E2A33B}.mt-row .v{white-space:normal;line-height:1.25;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:.82rem}
+@media (max-width:540px){.mt-row{grid-template-columns:78px minmax(0,1fr) minmax(0,112px)}}
+.bm-concl{margin-top:16px}.bm-concl p{margin:6px 0}.bm-concl .big{font-size:1.08rem}
+.be-nums .n{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:1.15rem;}
+  .be-nums .l{font-size:.78rem;color:var(--ink-soft);}
+  .be-list{margin:8px 0 0 18px;padding:0;font-size:.88rem;}
+  .be-list li{margin-bottom:3px;}
+
+  #beCard{background:#fff;border:2px solid var(--field-dark);border-radius:12px;padding:18px 20px;margin-top:12px;}
+  #beCard h4{margin:0 0 4px;font-family:'Zilla Slab',serif;font-size:1.25rem;color:var(--field-dark);}
+  #beCard table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.92rem;}
+  #beCard td,#beCard th{border:1px solid #aaa;padding:5px 8px;text-align:center;}
+  #beCard .hi{font-size:1rem;margin:6px 0;}
+  #beCard .en{font-size:.8rem;color:#555;margin:0 0 8px;}
+  @media print{
+    body *{visibility:hidden !important;}
+    #beCard,#beCard *{visibility:visible !important;}
+    #beCard{position:absolute;left:0;top:0;width:100%;border:2px solid #000;}
+  }
+
+  /* ---------- WEATHER + FORECAST ---------- */
+  .wx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:18px;}
+  .wx-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm);}
+  .wx-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+  .wx-head .n{font-family:'Zilla Slab',serif;font-weight:700;font-size:1.15rem;color:var(--field-dark);}
+  .wx-head .t{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:1.05rem;}
+  .wx-sub{font-size:.78rem;color:var(--ink-soft);margin-bottom:8px;}
+  .wx-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+  .wx-table td{padding:3px 2px;border-top:1px solid var(--line);white-space:nowrap;}
+  .wx-table td.r{text-align:right;font-family:'IBM Plex Mono',monospace;}
+  .wx-search{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;}
+  .wx-search input{flex:1;min-width:200px;padding:11px 14px;border-radius:10px;border:1.5px solid var(--line);font-family:inherit;font-size:.95rem;}
+  .wx-results{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .fc-badge{display:inline-block;font-size:.74rem;font-weight:700;padding:4px 10px;border-radius:999px;margin-bottom:10px;}
+  .fc-badge.live{background:#d9efdc;color:#1d5a2c;}
+  .fc-badge.sample{background:#f3e3c2;color:#7a4a0a;}
+  .fc-ai{background:var(--field-tint);border-left:4px solid var(--field);border-radius:8px;padding:14px 16px;margin-top:16px;white-space:pre-wrap;font-size:.93rem;line-height:1.55;}
+  .fc-warn{font-size:.8rem;color:var(--ink-soft);margin-top:10px;}
+
+  /* ---------- AI CHAT ---------- */
+  .chat-window{
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;
+    height:400px;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;
+  }
+  .bubble{max-width:78%;padding:11px 15px;border-radius:14px;font-size:.92rem;line-height:1.45;}
+  .bubble.bot{align-self:flex-start;background:var(--field-tint);color:var(--field-dark);border-bottom-left-radius:3px;}
+  .bubble.user{align-self:flex-end;background:var(--turmeric);color:#241a06;border-bottom-right-radius:3px;font-weight:600;}
+  .bubble.typing{font-style:italic;color:var(--ink-soft);background:var(--field-tint);}
+  .chip-questions{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;}
+  .chat-input-row{display:flex;gap:10px;margin-top:6px;}
+  .chat-input-row input{flex:1;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);font-family:inherit;font-size:.95rem;}
+  .chat-send{padding:0 22px;border-radius:10px;border:none;background:var(--field);color:var(--chalk);font-weight:700;cursor:pointer;}
+  .chat-send:disabled{opacity:.5;cursor:not-allowed;}
+  .disclaimer{font-size:.76rem;color:var(--ink-soft);margin-top:10px;}
+
+
+  /* ---------- ROUTE MAP (easy mode) ---------- */
+  .rt-step{background:var(--field-tint);border-left:5px solid var(--field);border-radius:10px;padding:12px 14px;font-weight:700;font-size:1.02rem;margin-bottom:10px;color:var(--field-dark);}
+  .rt-step.done{background:#fff7e8;border-color:var(--turmeric);}
+  .rt-map{height:500px;border-radius:14px;border:1px solid var(--line);}
+  .rt-pick{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;}
+  .rt-sel{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.9rem;flex:1;min-width:130px;}
+  .rt-sel select{font-size:1.05rem;padding:12px 10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-family:inherit;}
+  .rt-dot{display:inline-block;width:12px;height:12px;border-radius:50%;}
+  .rt-dot.from{background:#1b7f3b;} .rt-dot.to{background:#d9822b;}
+  .rt-swap{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-size:1.3rem;cursor:pointer;}
+  .rt-go{padding:13px 22px;font-size:1.05rem;}
+  .rt-best{border:2px solid #1b7f3b;background:#eef9ee;border-radius:14px;padding:14px 16px;}
+  .rt-best .big{font-size:1.25rem;font-weight:800;color:var(--field-dark);}
+  .rt-best .row2{margin-top:6px;font-size:1rem;}
+  .rt-all{margin-top:10px;} .rt-all summary,.rt-more summary{cursor:pointer;font-weight:700;padding:8px 0;}
+  .rt-more{margin-top:10px;}
+  .rt-pin{position:relative;width:120px;height:56px;cursor:pointer;}
+  .rt-pin i{position:absolute;left:50%;top:28px;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--c);border:3px solid #fff;box-shadow:0 1px 5px #0007;}
+  .rt-pin b{position:absolute;left:50%;transform:translateX(-50%);background:#fff;border:2px solid var(--c);color:#123522;border-radius:999px;padding:4px 10px;font:700 13px 'Mukta',sans-serif;white-space:nowrap;box-shadow:0 2px 6px #0004;}
+  .rt-pin.up b{bottom:34px;} .rt-pin.dn b{top:34px;}
+  .rt-lbl{display:flex;align-items:center;gap:6px;}
+  @media (max-width:540px){.rt-map{height:380px;}.rt-pick .rt-sel{min-width:100%;}.rt-swap{align-self:center}.rt-go{width:100%}}
+  /* ---------- TRANSPORT BILL ---------- */
+  .bill{background:#fffef9;border:2px dashed #8a7a4a;border-radius:6px;padding:16px 18px;margin:10px 0;font-size:.93rem;}
+  .bill h5{margin:0;font-family:'Zilla Slab',serif;font-size:1.15rem;text-align:center;color:var(--field-dark);}
+  .bill .sub{text-align:center;font-size:.76rem;color:var(--ink-soft);margin:2px 0 10px;}
+  .bill table{width:100%;border-collapse:collapse;}
+  .bill td,.bill th{padding:5px 4px;vertical-align:top;text-align:left;}
+  .bill td.a,.bill th.a{text-align:right;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+  .bill .basis{display:block;font-size:.74rem;color:var(--ink-soft);}
+  .bill tr.sec td{border-top:1px dashed #8a7a4a;padding-top:8px;font-weight:700;}
+  .bill tr.tot td{border-top:2px solid #333;font-weight:800;font-size:1.02rem;}
+  .bill tr.net td{background:#eef9ee;font-weight:800;}
+  .bill .meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-bottom:8px;}
+  .bill .meta b{display:block;font-size:.72rem;color:var(--ink-soft);font-weight:600;}
+  .bill .timebox{margin-top:10px;background:var(--field-tint);border-radius:8px;padding:8px 12px;}
+  tr.tr-pick{cursor:pointer;} tr.tr-pick.sel{background:#fff3d6;}
+  @media (max-width:540px){.bill .meta{grid-template-columns:1fr;}}
+  @media print{
+    body.print-bill #trBillCard,body.print-bill #trBillCard *{visibility:visible !important;}
+    body.print-bill #trBillCard{position:absolute;left:0;top:0;width:100%;}
+  }
+  /* ---------- FLOATING AI CHAT ---------- */
+  .chat-fab{
+    position:fixed;right:20px;bottom:20px;z-index:900;display:flex;align-items:center;gap:8px;
+    padding:12px 18px;border:none;border-radius:999px;cursor:pointer;
+    background:var(--field);color:var(--chalk);font:700 .95rem 'Mukta',sans-serif;
+    box-shadow:0 10px 28px rgba(18,53,34,.38);transition:transform .15s, background .15s;
+  }
+  .chat-fab:hover{transform:translateY(-2px);background:var(--field-dark);}
+  .chat-fab:focus-visible,.chat-close:focus-visible{outline:3px solid var(--turmeric);outline-offset:2px;}
+  .chat-fab-ic{font-size:1.35rem;line-height:1;}
+  .chat-fab[aria-expanded="true"]{display:none;}
+  .chat-pop{
+    position:fixed;right:20px;bottom:20px;z-index:901;width:390px;max-width:calc(100vw - 24px);
+    height:min(620px, calc(100vh - 40px));display:none;flex-direction:column;
+    background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    box-shadow:0 20px 50px rgba(20,28,20,.35);
+  }
+  .chat-pop.open{display:flex;}
+  .chat-pop-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 14px 12px 18px;background:var(--field);color:var(--chalk);font-weight:700;
+  }
+  .chat-close{border:none;background:rgba(255,255,255,.14);color:var(--chalk);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;}
+  .chat-close:hover{background:rgba(255,255,255,.26);}
+  .chat-pop-body{flex:1;min-height:0;display:flex;flex-direction:column;padding:12px 14px 12px;}
+  .chat-pop .chat-window{flex:1;height:auto;min-height:0;padding:14px;}
+  .chat-pop .bubble{max-width:88%;}
+  .chat-pop .chip-questions{margin:10px 0;max-height:96px;overflow-y:auto;}
+  .chat-pop .chip-questions .chip{font-size:.78rem;padding:6px 10px;}
+  .chat-pop .chat-input-row input{min-width:0;}
+  .chat-pop .chat-send{padding:0 16px;}
+  .chat-head-btns{display:flex;gap:8px;}
+  .chat-mic{width:48px;flex:none;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:1.35rem;cursor:pointer;}
+  .chat-mic:hover{background:var(--field-tint);}
+  .chat-mic.on{background:#c0392b;border-color:#c0392b;color:#fff;animation:micpulse 1.1s infinite;}
+  @keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.55)}70%{box-shadow:0 0 0 12px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
+  .chat-close.off{opacity:.5;}
+  @media (max-width:540px){
+    .chat-fab{right:14px;bottom:14px;padding:13px;}
+    .chat-fab-tx{display:none;}
+    .chat-pop{right:0;bottom:0;width:100vw;max-width:100vw;height:min(82vh,680px);border-radius:18px 18px 0 0;}
+    .chat-input-row input{font-size:16px;}
+  }
+  @media print{.chat-fab,.chat-pop{display:none !important;}}
+
+  .demo-banner{
+    background:#fff7e8;border:1px dashed var(--turmeric);color:var(--soil);
+    font-size:.82rem;padding:9px 14px;border-radius:8px;margin-bottom:20px;
+  }
+
+  footer{padding:28px 0 40px;text-align:center;font-size:.82rem;color:var(--ink-soft);}
+
+  @media (max-width: 880px){
+    .hero-grid{grid-template-columns:1fr;}
+    .hero h1{font-size:2.1rem;}
+    .helps-grid{grid-template-columns:1fr 1fr;}
+    .returns-result{grid-template-columns:1fr 1fr;}
+    .nav-actions .pill-btn span.long{display:none;}
+    .nav-actions .pill-btn span.short{display:inline;}
+  }
+  @media (max-width: 540px){
+    .helps-grid{grid-template-columns:1fr;}
+    .returns-result{grid-template-columns:1fr;}
+    .stat-row{gap:16px;}
+  }
+</style>
+<style>
+.km-out{margin-top:16px}.km-card{border:1px solid #0002;border-radius:12px;padding:12px 14px;margin:10px 0;background:#fff8}
+.km-card h4{margin:0 0 6px}.km-card ul{margin:4px 0 0 18px;padding:0}.km-tag{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.78rem;background:#0001;margin-right:6px}
+.km-warn-high{border-left:4px solid #c0392b}.km-warn-medium{border-left:4px solid #e0a100}
+.km-bar{height:10px;border-radius:6px;background:#0001;overflow:hidden;margin:3px 0 8px}.km-bar>i{display:block;height:100%;background:#2e8b57}
+.km-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.km-chips label{border:1px solid #0003;border-radius:99px;padding:4px 12px;cursor:pointer;font-size:.88rem}
+.km-chk{display:block;margin:8px 0;font-size:.9rem}
+.nav-actions .pill-btn span.short{display:none;}
+.nav-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.lang-switch{display:inline-flex;border:1.5px solid rgba(251,243,222,.45);border-radius:999px;overflow:hidden}
+.lang-switch button{background:transparent;color:var(--chalk);border:0;padding:7px 14px;font-weight:700;font-size:.88rem;cursor:pointer}
+.lang-switch button.on{background:var(--turmeric);color:#241a06}
+.tips-toggle{border:1.5px solid rgba(251,243,222,.45);background:transparent;color:var(--chalk);padding:7px 12px;border-radius:999px;font-weight:700;font-size:.85rem;cursor:pointer}
+.tips-toggle.on{background:rgba(251,243,222,.18)}
+.stk{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;font-size:1.05rem;box-shadow:0 1px 0 rgba(0,0,0,.18),inset 0 0 0 2px #fff;transform:rotate(-4deg);flex:none;vertical-align:middle;line-height:1}
+.stk.big{width:56px;height:56px;font-size:1.9rem;border-radius:16px;border:2px dashed rgba(0,0,0,.2);box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.tab-btn .stk{width:26px;height:26px;font-size:1rem;border-radius:9px}
+.use-tip{display:flex;gap:14px;align-items:flex-start;background:#FFF6D6;border:2px dashed #E2A33B;border-radius:14px;padding:14px 16px;margin-bottom:20px}
+.use-tip .stk.big{transform:rotate(-6deg)}
+.tip-q{font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;font-weight:700;color:var(--soil)}
+.tip-t{font-family:'Zilla Slab',serif;font-weight:700;font-size:1.12rem;color:var(--field-dark);line-height:1.25}
+.use-tip p{margin:2px 0 6px;font-size:.92rem;color:var(--ink)}
+.tip-how{font-weight:700;font-size:.82rem;color:var(--field)}
+.use-tip ol{margin:2px 0 0 18px;padding:0;font-size:.9rem;color:var(--ink-soft)}
+.km-notips .use-tip{display:none}
+.help-card .stk.big{margin-bottom:10px}
+.help-card p{margin-bottom:4px}
+body.km-hi h1,body.km-hi h2,body.km-hi h3,body.km-hi .tip-t,body.km-hi .brand-text .tag{font-family:'Mukta',system-ui,sans-serif}
+body.km-hi{line-height:1.6}
+body.km-hi .hero h1{max-width:none}
+@media (max-width:540px){.topbar-inner{padding:10px 14px;flex-wrap:wrap}.brand-text .tag{display:none}.use-tip{flex-direction:column}.lang-switch button{padding:6px 11px}}
+</style>
+<style>
+.subnav{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 18px}
+.subnav-btn{font:inherit;font-size:.9rem;padding:7px 16px;border-radius:99px;border:1.5px solid #0003;background:#fff;color:inherit;cursor:pointer}
+.subnav-btn.active{background:var(--field-dark,#25523A);color:#fff;border-color:transparent}
+.sub-sec{display:none}.sub-sec.active{display:block}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="brand" id="brandHome" aria-label="Kisan Mitra home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3c0 6-4 8-4 13a4 4 0 0 0 8 0c0-5-4-7-4-13Z"/><path d="M12 10v11"/></svg>
+      <span class="brand-text"><span class="name">Kisan Mitra</span><span class="tag" data-i18n="brand.tag">Mandi prices · AI advice</span></span>
+    </button>
+    <div class="nav-right">
+      <div class="lang-switch" role="group" aria-label="Language / भाषा">
+        <button type="button" data-lang="en">English</button>
+        <button type="button" data-lang="hi">हिंदी</button>
+      </div>
+      <button type="button" class="tips-toggle on" id="tipsToggle" data-i18n-title="tips.toggleTitle" title="Show or hide the sticker tips that explain each feature"><span aria-hidden="true">💡</span> <span data-i18n="tips.toggle">Tips</span></button>
+      <div class="nav-actions" id="navActions">
+        <button class="pill-btn" id="navLoginBtn" data-i18n="nav.login">Log in</button>
+        <button class="pill-btn solid" id="navRegisterBtn"><span class="long" data-i18n="nav.start">Get Started</span><span class="short" data-i18n="nav.signup">Sign up</span></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===================== LANDING ===================== -->
+  <section id="screen-landing">
+    <div class="container hero">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow" data-i18n="hero.eyebrow">AI-Powered Agri Market Intelligence</span>
+          <h1><span data-i18n="hero.h1a">Right Mandi.</span><span class="hi" data-i18n="hero.h1b">Right price, right time.</span></h1>
+          <p class="sub" data-i18n="hero.sub">Compare mandi prices, track market trends, estimate your net returns before you sell, and ask a farm-savvy AI assistant — all in one place, built for Indian farmers.</p>
+          <div class="cta-row">
+            <button class="btn btn-primary" id="heroGetStarted" data-i18n="hero.cta">Get Started — It's Free</button>
+            <button class="btn btn-ghost" id="heroSeeFeatures" data-i18n="hero.see">See What's Inside</button>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><span class="n">8</span><span class="l" data-i18n="stat.mandis">Mandis tracked</span></div>
+            <div class="stat"><span class="n">10</span><span class="l" data-i18n="stat.crops">Crops covered</span></div>
+            <div class="stat"><span class="n" data-i18n="stat.30d">30d</span><span class="l" data-i18n="stat.trends">Price trends</span></div>
+            <div class="stat"><span class="n">24×7</span><span class="l" data-i18n="stat.ai">AI assistant</span></div>
+          </div>
+        </div>
+        <div class="board-wrap">
+          <div class="board" id="tickerBoard">
+            <div class="board-head">
+              <span class="label" data-i18n="board.label">Today's Price</span>
+              <span class="live"><span class="live-dot"></span><span data-i18n="board.sample">SAMPLE DATA</span></span>
+            </div>
+            <div class="board-fade" id="boardFade">
+              <span id="tickerCrop"></span>
+              <span id="tickerCropHi"></span>
+              <div class="board-price">
+                <span class="amt num" id="tickerPrice"></span>
+                <span class="unit" data-i18n="board.unit">₹ / quintal · avg across mandis</span>
+              </div>
+              <div class="board-change" id="tickerChange"></div>
+            </div>
+            <div class="board-dots" id="boardDots"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="helps" id="features">
+      <div class="container">
+        <h2 data-i18n="helps.h2">Everything you need before you sell</h2>
+        <p data-i18n="helps.p">Ten simple tools. Each card has a sticker that tells you what it is for.</p>
+        <div class="helps-grid" id="helpsGrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== AUTH ===================== -->
+  <section id="screen-auth" class="hidden">
+    <div class="container auth-section">
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab" id="tabLogin" data-i18n="auth.tabLogin">Log in</button>
+          <button class="auth-tab" id="tabRegister" data-i18n="auth.tabRegister">New user? Register</button>
+        </div>
+        <div class="msg" id="authMsg"></div>
+
+        <div id="loginForm">
+          <div class="field"><label for="loginMobile" data-i18n="auth.mobile">Mobile number</label><input id="loginMobile" inputmode="numeric" maxlength="10" data-i18n-ph="auth.mobilePh" placeholder="10-digit mobile number"></div>
+          <div class="field"><label for="loginPass" data-i18n="auth.pass">Password</label><input id="loginPass" type="password" data-i18n-ph="auth.passPh" placeholder="Enter password"></div>
+          <button class="btn btn-primary auth-submit" id="loginSubmit" data-i18n="nav.login">Log in</button>
+          <p class="auth-foot"><span data-i18n="auth.newHere">New here?</span> <button class="link-btn" id="goRegister" data-i18n="auth.create">Create an account</button></p>
+        </div>
+
+        <div id="registerForm" class="hidden">
+          <div class="field"><label for="regName" data-i18n="auth.fullName">Full name</label><input id="regName" data-i18n-ph="auth.namePh" placeholder="e.g. Ramesh Patel"></div>
+          <div class="field"><label for="regMobile" data-i18n="auth.mobile">Mobile number</label><input id="regMobile" inputmode="numeric" maxlength="10" data-i18n-ph="auth.mobilePh" placeholder="10-digit mobile number"></div>
+          <div class="field"><label for="regPass" data-i18n="auth.pass">Password</label><input id="regPass" type="password" data-i18n-ph="auth.passNew" placeholder="Create a password"></div>
+          <button class="btn btn-primary auth-submit" id="registerSubmit" data-i18n="auth.createBtn">Create account</button>
+          <p class="auth-foot"><span data-i18n="auth.already">Already registered?</span> <button class="link-btn" id="goLogin" data-i18n="nav.login">Log in</button></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DASHBOARD ===================== -->
+  <section id="screen-dashboard" class="hidden">
+    <div class="dash-welcome">
+      <div class="container dash-welcome-inner">
+        <div>
+          <h2 id="welcomeName">Welcome 👋</h2>
+          <p data-i18n="dash.sub">Make the right decision for your crop — real decisions, made simple.</p>
+        </div>
+        <button class="pill-btn" id="logoutBtn" data-i18n="nav.logout">Log out</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="demo-banner" id="dataBanner" data-i18n="banner.sample">⚠️ This prototype uses sample mandi price data for demonstration. Prices are not live market feeds.</div>
+
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="compare" data-i18n-title="tip.compare.d"><span class="stk" style="background:#FFE9A8">📊</span><span data-i18n="tab.compare">Price Comparison</span></button>
+        <button class="tab-btn" data-tab="transport" data-i18n-title="tip.transport.d"><span class="stk" style="background:#FFE2C8">🚚</span><span data-i18n="tab.transport">Transporters</span></button>
+        <button class="tab-btn" data-tab="route"><span class="stk" style="background:#E3F1D0">🗺️</span><span data-i18n="tab.route">Route Map</span></button>
+        <button class="tab-btn" data-tab="trends" data-i18n-title="tip.trends.d"><span class="stk" style="background:#CFEBD2">📈</span><span data-i18n="tab.trends">Market Trends</span></button>
+        <button class="tab-btn" data-tab="returns" data-i18n-title="tip.returns.d"><span class="stk" style="background:#FFD9C2">🧮</span><span data-i18n="tab.returns">Estimated Returns</span></button>
+        <button class="tab-btn" data-tab="breakeven" data-i18n-title="tip.breakeven.d"><span class="stk" style="background:#DCD6F5">⚖️</span><span data-i18n="tab.breakeven">Break-even Check</span></button>
+        <button class="tab-btn" data-tab="weather" data-i18n-title="tip.weather.d"><span class="stk" style="background:#CDE7F7">⛅</span><span data-i18n="tab.weather">Weather</span></button>
+        <button class="tab-btn" data-tab="doctor" data-i18n-title="tip.doctor.d"><span class="stk" style="background:#D9F2B8">🩺</span><span data-i18n="tab.doctor">Crop Doctor</span></button>
+        <button class="tab-btn" data-tab="yojana" data-i18n-title="tip.yojana.d"><span class="stk" style="background:#F7DFB3">🏛️</span><span data-i18n="tab.yojana">Govt. Schemes</span></button>
+      </div>
+
+
+      <!-- PANEL: CROP DOCTOR -->
+      <div class="panel" id="panel-doctor"><div class="panel-card">
+        <div class="use-tip" data-tip="doctor"></div>
+        <h3 data-i18n="doc.h3">Crop Doctor — identify plant disease from a leaf photo</h3>
+        <p class="hint" data-i18n="doc.hint">Take a clear photo (leaf filling the frame, good light). The AI (Gemini Vision) gives an estimate — confirm any medicine or dose with your local KVK / agriculture officer.</p>
+        <div class="row">
+          <div class="field"><label for="docCrop" data-i18n="doc.crop">Crop (optional)</label><input id="docCrop" data-i18n-ph="doc.cropPh" placeholder="e.g. Tomato, Wheat" /></div>
+          <div class="field"><label for="docFile" data-i18n="doc.photo">Photo</label><input id="docFile" type="file" accept="image/*" /></div>
+        </div>
+        <img id="docPrev" class="hidden" alt="preview" style="max-width:240px;border-radius:10px;margin:8px 0" />
+        <button class="btn btn-primary" id="docGo" type="button" data-i18n="doc.btn">Diagnose</button>
+        <div id="docOut" class="km-out"></div>
+      </div></div>
+
+      <!-- PANEL: YOJANA SETU -->
+      <div class="panel" id="panel-yojana"><div class="panel-card">
+        <div class="use-tip" data-tip="yojana"></div>
+        <h3 data-i18n="yj.h3">Govt. Schemes — find schemes for you</h3>
+        <p class="hint" data-i18n="yj.hint">Select what you need. This is a short starter list — check the official portal for exact eligibility and current amounts.</p>
+        <div id="yjNeeds" class="km-chips"></div>
+        <label class="km-chk"><input type="checkbox" id="yjLand" checked /> <span data-i18n="yj.land">I own cultivable land</span></label>
+        <div id="yjOut" class="km-out"></div>
+      </div></div>
+
+
+      <!-- PANEL: PRICE COMPARISON -->
+      <div class="panel active" id="panel-compare">
+        <div class="panel-card">
+          <div class="use-tip" data-tip="compare"></div>
+          <h3 data-i18n="cmp.h3">Mandi-wise Price Comparison</h3>
+          <p class="hint" data-i18n="cmp.hint">Select a crop and the mandis you can access, then compare today's rates.</p>
+          <div class="row">
+            <div class="field">
+              <label for="cmpCrop" data-i18n="common.crop">Crop</label>
+              <select id="cmpCrop"></select>
+            </div>
+          </div>
+          <div class="field" style="margin-top:16px;">
+            <label data-i18n="cmp.mandis">Mandis to compare</label>
+            <div class="chip-group" id="cmpMandiChips"></div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" id="cmpCompareBtn" data-i18n="cmp.btn">Compare Prices</button></div>
+          <div class="price-list" id="cmpResults"></div>
+          <div class="best-note hidden" id="cmpBestNote"></div>
+          <div id="trCard" class="hidden" style="margin-top:22px;">
+            <h3 style="margin-bottom:4px;"><span class="stk" style="background:#FFE3B8">🚚</span> <span data-i18n="tr.h3">Transport comparison</span></h3>
+            <p class="hint" data-i18n="tr.hint">Compare vehicle options for the mandi you pick. Costs use assumed average rates and the rating is calculated by the app (not user reviews). Ask your transporter for the real quote.</p>
+            <div class="row">
+              <div class="field"><label for="trFrom" data-i18n="tr.from">Your location</label><select id="trFrom"></select></div>
+              <div class="field"><label for="trTo" data-i18n="tr.to">Sell at</label><select id="trTo"></select></div>
+              <div class="field"><label for="trQty" data-i18n="tr.qty">Quantity (quintal)</label><input id="trQty" type="number" min="1" max="1000" value="20" /></div>
+            </div>
+            <div id="trOut" class="km-out"></div>
+            <div id="trBillBox" class="hidden">
+              <h4 style="margin:18px 0 6px" data-i18n="bill.h">🧾 Transport bill (estimate)</h4>
+              <div class="row">
+                <div class="field"><label for="trQuote" data-i18n="bill.quote">Your transporter's quote (₹, optional)</label><input id="trQuote" type="number" min="0" step="100" placeholder="₹" /></div>
+                <div class="field"><label for="trStart" data-i18n="bill.start">Start time</label><input id="trStart" type="time" value="06:00" /></div>
+              </div>
+              <p class="hint" data-i18n="bill.quoteHint"></p>
+              <div id="trBillCard"></div>
+              <div class="btn-row"><button class="btn btn-primary" id="trBillPrint" type="button" data-i18n="bill.print">🖨 Print / Save as PDF</button><button class="btn" id="trBillMap" type="button" data-i18n="bill.map">🗺 Show road on map</button></div>
+            </div>
+            <div class="btn-row"><button class="btn" id="trFindBtn" type="button" data-i18n="tr.find">Find transporters for this route →</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: TRANSPORTERS -->
+      <div class="panel" id="panel-route"><div class="panel-card rt-easy">
+        <h3 data-i18n="rt.h3">Route Map — Madhya Pradesh</h3>
+        <p class="hint" style="margin:0 0 10px" data-i18n="rt.hint"></p>
+        <div class="rt-step" id="rtStep" aria-live="polite"></div>
+        <div id="rtMap" class="rt-map"></div>
+        <div class="rt-pick">
+          <label class="rt-sel"><span class="rt-lbl"><i class="rt-dot from"></i><span data-i18n="rt.from">From</span></span><select id="rtFrom"></select></label>
+          <button id="rtSwap" class="rt-swap" type="button" aria-label="Swap" title="Swap">⇄</button>
+          <label class="rt-sel"><span class="rt-lbl"><i class="rt-dot to"></i><span data-i18n="rt.to">To</span></span><select id="rtTo"></select></label>
+          <button id="rtGo" class="btn btn-primary rt-go" type="button" data-i18n="rt.go">Show roads</button>
+        </div>
+        <div id="rtList" style="margin-top:12px"></div>
+        <details class="rt-more" id="rtMore"><summary data-i18n="rt.more">More options (what is "best road" for me?)</summary>
+          <label style="display:block;margin-top:8px"><span data-i18n="rt.pref">Best route means</span><br><select id="rtPref">
+            <option value="fast" data-i18n="rt.p.fast">Fastest</option><option value="short" data-i18n="rt.p.short">Shortest</option>
+            <option value="toll" data-i18n="rt.p.toll">Least toll</option><option value="road" data-i18n="rt.p.road">Best road</option></select></label>
+        </details>
+        <div class="km-card" id="rtTrack" style="margin:14px 0">
+          <h4 data-i18n="rt.tr.h" style="margin:0 0 4px">🚚 Track a transporter live</h4>
+          <p class="hint" style="margin:0 0 8px" data-i18n="rt.tr.hint"></p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+            <label style="flex:1;min-width:220px"><span data-i18n="rt.tr.pick">Transporter</span><br><select id="rtTrSel" style="width:100%"></select></label>
+            <button id="rtTrGo" class="btn btn-primary" type="button" data-i18n="rt.tr.go">Track live</button>
+            <button id="rtTrStop" class="btn hidden" type="button" data-i18n="rt.tr.stop">Stop tracking</button>
+          </div>
+          <div id="rtTrInfo" style="margin-top:10px" aria-live="polite"></div>
+        </div>
+        <p class="muted" style="font-size:13px" data-i18n="rt.note"></p>
+      </div></div>
+
+      <div class="panel" id="panel-transport"><div class="panel-card">
+        <div class="use-tip" data-tip="transport"></div>
+        <h3 data-i18n="tr.h3">Find transporters</h3>
+        <p class="hint" data-i18n="tr.hint">Vehicle owners list themselves here.</p>
+        <div class="row">
+          <div class="field"><label for="tpArea" data-i18n="tr.area">Pickup area</label><select id="tpArea"></select></div>
+          <div class="field"><label for="tpVeh" data-i18n="tr.veh">Vehicle</label><select id="tpVeh"></select></div>
+        </div>
+        <div class="km-card hidden" id="tpShare">
+          <h4 data-i18n="tr.sh.h" style="margin:0 0 4px">📍 Share my live location</h4>
+          <p class="hint" style="margin:0 0 8px" data-i18n="tr.sh.hint"></p>
+          <div class="btn-row"><button class="btn btn-primary" id="tpShareBtn" type="button" data-i18n="tr.sh.start">Start sharing</button></div>
+          <p class="hint" id="tpShareMsg" aria-live="polite" style="margin-top:8px"></p>
+        </div>
+        <div id="tpList" class="km-out"></div>
+        <p class="hint" data-i18n="tr.disclaimer">Listings are not verified.</p>
+        <details class="km-card" id="tpReg">
+          <summary data-i18n="tr.regSummary">I own a vehicle: list it here</summary>
+          <div class="row" style="margin-top:12px">
+            <div class="field"><label for="tpName" data-i18n="tr.f.name">Your or business name</label><input id="tpName" maxlength="60" /></div>
+            <div class="field"><label for="tpOwner" data-i18n="tr.f.owner">Owner name</label><input id="tpOwner" maxlength="60" /></div>
+            <div class="field"><label for="tpMobile" data-i18n="tr.f.mobile">Mobile number (shown to farmers)</label><input id="tpMobile" inputmode="numeric" maxlength="10" /></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="tpVehReg" data-i18n="tr.f.veh">Vehicle type</label><select id="tpVehReg"></select></div>
+            <div class="field"><label for="tpCap" data-i18n="tr.f.cap">Capacity (quintal)</label><input id="tpCap" type="number" min="1" max="1000" /></div>
+          </div>
+          <div class="field"><label data-i18n="tr.f.areas">Districts you serve (up to 8)</label><div id="tpAreas" class="km-chips"></div></div>
+          <div class="field"><label for="tpNote" data-i18n="tr.f.note">Short note (optional)</label><input id="tpNote" maxlength="120" /></div>
+          <label class="km-chk"><input type="checkbox" id="tpConsent" /> <span data-i18n="tr.f.consent">I agree that my name and mobile number will be shown to logged-in users.</span></label>
+          <div class="btn-row"><button class="btn btn-primary" id="tpSave" type="button" data-i18n="tr.f.submit">Save my listing</button><button class="btn hidden" id="tpRemove" type="button" data-i18n="tr.remove">Remove my listing</button></div>
+          <p class="hint" id="tpMsg"></p>
+        </details>
+      </div></div>
+
+      <!-- PANEL: MARKET TRENDS -->
+      <div class="panel" id="panel-trends">
+        <div class="panel-card">
+          <div class="use-tip" data-tip="trends"></div>
+          <h3 data-i18n="trend.h3">Market Trends &amp; Insights</h3>
+          <p class="hint" data-i18n="trend.hint">See how a crop's price has moved over the last 30 days.</p>
+          <div class="row">
+            <div class="field"><label for="trendCrop" data-i18n="common.crop">Crop</label><select id="trendCrop"></select></div>
+            <div class="field"><label for="trendMandi" data-i18n="common.mandi">Mandi</label><select id="trendMandi"></select></div>
+          </div>
+          <p class="hint" id="trendNote" style="margin-top:10px;"></p>
+          <div class="trend-stats" id="trendStats" style="margin-top:22px;"></div>
+          <div class="chart-box"><canvas id="trendChart"></canvas></div>
+
+          <h3 style="margin-top:30px;" id="trendBarTitle" data-i18n="trend.barTitle">Prices in all mandis</h3>
+          <p class="hint" id="trendBarHint"></p>
+          <div class="chart-box"><canvas id="trendBarChart"></canvas></div>
+
+          <div class="be-sec" id="salesSec" style="margin-top:34px;">
+            <h3 id="salesTitle" data-i18n="sales.h3">Crops sold — which crop is traded most?</h3>
+            <p class="hint" data-i18n="sales.hint"></p>
+            <div class="row">
+              <div class="field"><label for="salesMandi" data-i18n="common.mandi">Mandi</label><select id="salesMandi"></select></div>
+              <div class="field"><label for="salesPeriod" data-i18n="sales.period">Period</label><select id="salesPeriod"></select></div>
+            </div>
+            <p class="hint" id="salesNote" style="margin-top:10px;"></p>
+            <div class="sales-grid">
+              <div class="chart-box sales-pie"><canvas id="salesPie"></canvas></div>
+              <div id="salesTable" class="sales-table"></div>
+            </div>
+            <div id="salesConcl"></div>
+            <h4 style="margin:22px 0 6px;font-family:'Zilla Slab',serif;color:var(--field-dark)" data-i18n="sales.perMandi">Total in every mandi</h4>
+            <div id="salesMandiTotals"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: ESTIMATED RETURNS -->
+      <div class="panel" id="panel-returns">
+        <div class="panel-card">
+          <div class="use-tip" data-tip="returns"></div>
+          <h3 data-i18n="ret.h3">Estimated Returns</h3>
+          <p class="hint" data-i18n="ret.hint">Work out your real net return after transport and other selling costs.</p>
+          <div class="row">
+            <div class="field"><label for="retCrop" data-i18n="common.crop">Crop</label><select id="retCrop"></select></div>
+            <div class="field"><label for="retMandi" data-i18n="ret.mandi">Selling mandi</label><select id="retMandi"></select></div>
+            <div class="field"><label for="retQty" data-i18n="ret.qty">Quantity (quintals)</label><input id="retQty" type="number" min="0" step="0.1" data-i18n-ph="ret.qtyPh" placeholder="e.g. 25"></div>
+          </div>
+          <div class="row" style="margin-top:16px;">
+            <div class="field"><label for="retPrice" data-i18n="ret.price">Price per quintal (₹, auto-filled — editable)</label><input id="retPrice" type="number" min="0"></div>
+            <div class="field"><label for="retTransport" data-i18n="ret.transport">Transportation cost (₹)</label><input id="retTransport" type="number" min="0" data-i18n-ph="ret.transportPh" placeholder="e.g. 800"></div>
+            <div class="field"><label for="retOther" data-i18n="ret.other">Other costs — labour, mandi fee, etc. (₹)</label><input id="retOther" type="number" min="0" data-i18n-ph="ret.otherPh" placeholder="e.g. 300"></div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" id="retCalcBtn" data-i18n="ret.btn">Calculate</button></div>
+          <div class="returns-result hidden" id="retResults">
+            <div class="rr-cell"><div class="l" data-i18n="ret.gross">Gross Revenue</div><div class="v num" id="rrGross">₹0</div></div>
+            <div class="rr-cell"><div class="l" data-i18n="ret.costs">Total Costs</div><div class="v num" id="rrCosts">₹0</div></div>
+            <div class="rr-cell net"><div class="l" data-i18n="ret.net">Net Return</div><div class="v num" id="rrNet">₹0</div></div>
+            <div class="rr-cell"><div class="l" data-i18n="ret.perQtl">Net / Quintal</div><div class="v num" id="rrPerQtl">₹0</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: BREAK-EVEN CHECK -->
+      <div class="panel" id="panel-breakeven">
+        <div class="panel-card">
+          <div class="use-tip" data-tip="breakeven"></div>
+          <h3 data-i18n="be.h3">Break-even Check — is the distant market really worth it?</h3>
+          <p class="hint" data-i18n-html="be.hint"></p>
+
+          <div class="be-sec" id="bmSec">
+            <h4 data-i18n="bm.h">A) Mandi-wise rates and profit — where should I sell?</h4>
+            <p class="hint" data-i18n="bm.hint"></p>
+            <div class="be-grid">
+              <div class="field"><label for="bmLocal" data-i18n="bm.local">My mandi / location</label><select id="bmLocal"></select></div>
+              <div class="field"><label for="bmTarget" data-i18n="bm.target">Mandi to sell at (report)</label><select id="bmTarget"></select></div>
+              <div class="field"><label for="bmCrop" data-i18n="bm.myCrop">My crop (for the conclusion)</label><select id="bmCrop"></select></div>
+              <div class="field"><label for="bmQty" data-i18n="bm.qty">Quantity (quintal)</label><input id="bmQty" type="number" min="1" max="5000" step="1" value="20" /></div>
+            </div>
+            <div class="be-grid" style="margin-top:14px;">
+              <div class="field"><label for="bmMode" data-i18n="bm.mode">Transport price</label><select id="bmMode"></select></div>
+              <div class="field" id="bmVehWrap"><label for="bmVeh" data-i18n="bm.veh">Vehicle</label><select id="bmVeh"></select></div>
+              <div class="field hidden" id="bmRateWrap"><label for="bmRate" data-i18n="bm.rate">My transport rate (₹ per quintal per km)</label><input id="bmRate" type="number" min="0" step="0.05" placeholder="0.30" /></div>
+              <div class="field hidden" id="bmFixedWrap"><label for="bmFixed" data-i18n="bm.fixed">Transport quote (₹ per quintal, same for every mandi)</label><input id="bmFixed" type="number" min="0" step="1" placeholder="40" /></div>
+              <div class="field"><label for="bmOther" data-i18n="bm.other">Other charges at far mandi (₹ per quintal)</label><input id="bmOther" type="number" min="0" step="1" value="0" /></div>
+              <div class="field"><label for="bmLocalCost" data-i18n="bm.localCost">Cost of selling in my own mandi (₹ per quintal)</label><input id="bmLocalCost" type="number" min="0" step="1" value="0" /></div>
+            </div>
+            <p class="hint" id="bmModeHint" style="margin-top:8px"></p>
+            <div class="btn-row"><button class="btn btn-primary" id="bmGo" type="button" data-i18n="bm.go">Show mandi rates and profit</button></div>
+            <div id="bmOut"></div>
+          </div>
+
+          <div class="be-sec">
+            <h4 data-i18n="be.s4">Printable Break-even Card (for low connectivity)</h4>
+            <p class="hint" data-i18n="be.s4hint"></p>
+            <div class="be-grid" style="margin-top:14px;">
+              <div class="field"><label data-i18n="be.transport">Transport + loading (₹/kg) low – high</label><div class="be-pair"><input id="beTLo" type="number" min="0" step="0.5" /><input id="beTHi" type="number" min="0" step="0.5" /></div></div>
+              <div class="field"><label data-i18n="be.otherCh">Other charges (₹/kg) low – high</label><div class="be-pair"><input id="beOLo" type="number" min="0" step="0.5" /><input id="beOHi" type="number" min="0" step="0.5" /></div></div>
+              <div class="field"><label data-i18n="be.nearCost">Cost of selling nearby (₹/kg) low – high</label><div class="be-pair"><input id="beLLo" type="number" min="0" step="0.5" /><input id="beLHi" type="number" min="0" step="0.5" /></div></div>
+            </div>
+            <p class="hint" data-i18n-html="be.otherHint"></p>
+            <div class="be-grid" style="margin-top:14px;">
+              <div class="field"><label for="beValid" data-i18n="be.valid">Valid until (date)</label><input id="beValid" type="date" /></div>
+            </div>
+            <div class="btn-row"><button class="btn btn-primary" id="beCardBtn" type="button" data-i18n="be.cardBtn">Build card</button><button class="btn" id="bePrint" type="button" data-i18n="be.printBtn">Print / Save as PDF</button></div>
+            <div id="beCard" class="hidden"></div>
+          </div>
+
+          <div class="be-sec">
+            <h4 data-i18n="be.noTitle">Version 1 does not:</h4>
+            <ul class="be-list">
+              <li data-i18n="be.no1"></li>
+              <li data-i18n="be.no2"></li>
+              <li data-i18n="be.no3"></li>
+              <li data-i18n="be.no4"></li>
+              <li data-i18n="be.no5"></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: WEATHER, SOIL & PRICE FORECAST (merged) -->
+      <div class="panel" id="panel-weather">
+        <div class="panel-card">
+          <div class="use-tip" data-tip="weather"></div>
+          <div class="subnav" id="wxSubnav">
+            <button type="button" class="subnav-btn active" data-sub="wx" data-i18n="sub.wx">Mandi weather</button>
+            <button type="button" class="subnav-btn" data-sub="soil" data-i18n="sub.soil">Soil &amp; climate</button>
+            <button type="button" class="subnav-btn" data-sub="fc" data-i18n="sub.fc">Price forecast</button>
+          </div>
+
+          <section class="sub-sec active" id="sub-wx">
+            <h3 data-i18n="wx.h3">Weather — 7-day forecast for every mandi</h3>
+            <p class="hint" data-i18n="wx.hint">Mandi town weather is below. To see any other town or village, type its name and search. (Data: Open-Meteo)</p>
+            <div class="wx-search">
+              <input id="wxSearch" data-i18n-ph="wx.ph" placeholder="e.g. Dabra, Bhind, Datia, Vidisha ..." />
+              <button class="btn btn-primary" id="wxSearchBtn" type="button" data-i18n="wx.search">Search</button>
+            </div>
+            <div class="wx-results" id="wxResults"></div>
+            <div class="wx-grid" id="wxCustom"></div>
+            <div class="wx-grid" id="wxGrid"><p class="hint" data-i18n="common.loading">Loading…</p></div>
+          </section>
+
+          <section class="sub-sec" id="sub-soil">
+            <h3 data-i18n="agro.h3">Soil &amp; Climate — soil moisture and weather warnings</h3>
+            <p class="hint" data-i18n="agro.hint">Choose a district. Soil moisture is a model estimate (Open-Meteo), not a reading from a field sensor.</p>
+            <div class="row"><div class="field"><label for="agroDist" data-i18n="agro.dist">District</label><select id="agroDist"></select></div></div>
+            <div id="agroOut" class="km-out"></div>
+          </section>
+
+          <section class="sub-sec" id="sub-fc">
+            <h3 data-i18n="fc.h3">Price Forecast — estimate for the next 7 days</h3>
+            <p class="hint" data-i18n="fc.hint">AI combines the price trend and that mandi's weather to say whether the price may rise or fall.</p>
+            <div class="row">
+              <div class="field"><label for="fcCrop" data-i18n="common.crop">Crop</label><select id="fcCrop"></select></div>
+              <div class="field"><label for="fcMandi" data-i18n="common.mandi">Mandi</label><select id="fcMandi"></select></div>
+            </div>
+            <div class="btn-row"><button class="btn btn-primary" id="fcBtn" type="button" data-i18n="fc.btn">See forecast</button></div>
+            <div id="fcOut" class="hidden" style="margin-top:20px;">
+              <span class="fc-badge" id="fcBadge"></span>
+              <div class="trend-stats" id="fcStats"></div>
+              <div class="chart-box"><canvas id="fcChart"></canvas></div>
+              <div class="fc-warn" id="fcNote"></div>
+              <div class="wx-card" style="margin-top:16px;" id="fcWx"></div>
+              <div class="fc-ai" id="fcAI"></div>
+              <p class="fc-warn" data-i18n="fc.warn">⚠️ This is only an estimate, not a guarantee.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- FLOATING AI ASSISTANT (available on every tab) -->
+      <button type="button" class="chat-fab" id="chatFab" aria-controls="chatPop" aria-expanded="false" data-i18n-title="tip.ai.d">
+        <span class="chat-fab-ic" aria-hidden="true">🤖</span><span class="chat-fab-tx" data-i18n="tab.ai">AI Assistant</span>
+      </button>
+      <div class="chat-pop" id="chatPop" role="dialog" aria-label="AI Assistant" hidden>
+        <div class="chat-pop-head">
+          <span class="chat-pop-title"><span aria-hidden="true">🤖</span> <span data-i18n="ai.h3">AI Farmer Assistant</span></span>
+          <span class="chat-head-btns">
+            <button type="button" class="chat-close" id="chatSpk" aria-label="Voice reply" data-i18n-title="ai.spk.on" title="Read answers aloud">🔊</button>
+            <button type="button" class="chat-close" id="chatClose" aria-label="Close">✕</button>
+          </span>
+        </div>
+        <div class="chat-pop-body">
+          <div class="chat-window" id="chatWindow">
+            <div class="bubble bot" id="chatHello"></div>
+          </div>
+          <div class="chip-questions" id="chatSuggestions"></div>
+          <div class="chat-input-row">
+            <input id="chatInput" data-i18n-ph="ai.ph" placeholder="e.g. Best mandi to sell wheat right now?" />
+            <button class="chat-mic" id="chatMic" type="button" aria-label="Speak" data-i18n-title="ai.mic.tip" title="Tap and speak">🎤</button>
+            <button class="chat-send" id="chatSend" data-i18n="ai.send">Send</button>
+          </div>
+          <p class="disclaimer" data-i18n="ai.disc"></p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer data-i18n="footer">
+  Kisan Mitra — AI-Based Agricultural Market Intelligence and Decision Support
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ MOCK DATA ============ */
+  const CROPS = [
+    {id:'wheat',   name:'Wheat',           hi:'गेहूं',   base:2350},
+    {id:'soybean', name:'Soybean',         hi:'सोयाबीन', base:4200},
+    {id:'gram',    name:'Gram (Chana)',    hi:'चना',    base:5300},
+    {id:'mustard', name:'Mustard',         hi:'सरसों',   base:5600},
+    {id:'paddy',   name:'Paddy (Rice)',    hi:'धान',    base:2100},
+    {id:'maize',   name:'Maize',           hi:'मक्का',   base:1950},
+    {id:'onion',   name:'Onion',           hi:'प्याज',   base:1400},
+    {id:'potato',  name:'Potato',          hi:'आलू',    base:1150},
+    {id:'tomato',  name:'Tomato',          hi:'टमाटर',   base:1300},
+    {id:'cotton',  name:'Cotton',          hi:'कपास',   base:6800},
+  ];
+  const MANDIS = ['Gwalior','Bhopal','Indore','Ujjain','Sagar','Jabalpur','Morena','Shivpuri'];
+  const T = (k,p)=>KM.t(k,p);
+  const cn = c => KM.crop(c);
+  const mn = m => KM.mandi(m);
+
+  function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(Math.imul(31,h)+s.charCodeAt(i))|0; } return h; }
+  function mulberry32(seed){
+    return function(){
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function cropById(id){ return CROPS.find(c=>c.id===id); }
+
+  function samplePriceFor(cropId, mandi){
+    const crop = cropById(cropId);
+    const rnd = mulberry32(hashStr(cropId+'|'+mandi));
+    const variation = (rnd()*0.16 - 0.07); // -7% to +9%
+    return Math.round(crop.base * (1+variation) / 5) * 5;
+  }
+  function mandiFactor(cropId, mandi){
+    return samplePriceFor(cropId, mandi) / cropById(cropId).base;
+  }
+
+  const TREND_CACHE = {};
+  function baseTrend(cropId, days){
+    days = days || 30;
+    const key = cropId+'|'+days;
+    if(TREND_CACHE[key]) return TREND_CACHE[key];
+    const crop = cropById(cropId);
+    const rnd = mulberry32(hashStr('trend|'+cropId));
+    let price = crop.base * (0.94 + rnd()*0.06);
+    const arr = [];
+    for(let i=0;i<days;i++){
+      const change = (rnd()*0.05 - 0.024);
+      price = price * (1+change);
+      arr.push(price);
+    }
+    TREND_CACHE[key] = arr;
+    return arr;
+  }
+  function trendFor(cropId, mandi, days){
+    const ls = LIVE.live ? liveSeries(cropId, mandi) : null;
+    if(ls && ls.values.length >= 2) return ls.values.map(v=>Math.round(v));
+    const base = baseTrend(cropId, days);
+    if(!mandi || mandi === 'avg') return base.map(v=>Math.round(v/5)*5);
+    const f = mandiFactor(cropId, mandi);
+    return base.map(v=>Math.round((v*f)/5)*5);
+  }
+  function dateLabels(days){
+    const out=[]; const today = new Date();
+    for(let i=days-1;i>=0;i--){
+      const d = new Date(today); d.setDate(d.getDate()-i);
+      out.push(d.toLocaleDateString(KM.locale(),{day:'2-digit',month:'short'}));
+    }
+    return out;
+  }
+  function inr(n){ return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+  /* ============ CHART HELPER ============ */
+  function chartOK(canvasId){
+    const c = document.getElementById(canvasId), box = c.parentElement;
+    let m = box.querySelector('.chart-err');
+    if(typeof Chart !== 'undefined'){ if(m) m.remove(); c.style.display=''; return true; }
+    if(!m){
+      m = document.createElement('div'); m.className = 'chart-err hint';
+      m.textContent = T('chart.err');
+      box.appendChild(m);
+    }
+    c.style.display = 'none';
+    return false;
+  }
+
+  /* ============ LIVE DATA LAYER (data.gov.in via server) ============ */
+  let LIVE = { live:false, asOf:null, maxDays:0, prices:{}, history:{}, errors:{}, missing:[], keyConfigured:false };
+  const API_OK = /^https?:$/.test(location.protocol);
+  function livePrice(cropId, mandi){
+    const p = LIVE.live && LIVE.prices[cropId] && LIVE.prices[cropId][mandi];
+    return p ? p.modal : null;
+  }
+  function priceFor(cropId, mandi){
+    const l = livePrice(cropId, mandi);
+    return l != null ? l : samplePriceFor(cropId, mandi);
+  }
+  function liveSeries(cropId, mandi){
+    const h = LIVE.history[cropId];
+    if(!LIVE.live || !h) return null;
+    if(mandi && mandi !== 'avg'){
+      const arr = h[mandi];
+      if(!arr || !arr.length) return null;
+      return { dates: arr.map(x=>x.date), values: arr.map(x=>x.modal) };
+    }
+    const byDate = {};
+    Object.values(h).forEach(arr=>arr.forEach(x=>{ (byDate[x.date] = byDate[x.date] || []).push(x.modal); }));
+    const dates = Object.keys(byDate).sort();
+    if(!dates.length) return null;
+    return { dates, values: dates.map(d=>byDate[d].reduce((a,b)=>a+b,0)/byDate[d].length) };
+  }
+  function fmtShort(iso){ return new Date(iso+'T00:00:00').toLocaleDateString(KM.locale(),{day:'2-digit',month:'short'}); }
+  function fmtDay(iso){ return new Date(iso+'T00:00:00').toLocaleDateString(KM.locale(),{weekday:'short',day:'numeric'}); }
+  function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+
+  /* ============ STORAGE (with graceful fallback) ============ */
+  const memStore = {};
+  const store = {
+    async get(key){
+      if (typeof window.storage !== 'undefined'){ return window.storage.get(key, false); }
+      if (key in memStore) return { key, value: memStore[key] };
+      try{ const v = localStorage.getItem('km:'+key); if(v!==null) return { key, value: v }; }catch(e){}
+      throw new Error('not-found');
+    },
+    async set(key, value){
+      if (typeof window.storage !== 'undefined'){ return window.storage.set(key, value, false); }
+      memStore[key] = value;
+      try{ localStorage.setItem('km:'+key, value); }catch(e){}
+      return { key, value };
+    }
+  };
+
+  let currentUser = null;
+  window.KM_USER = () => currentUser;
+
+  /* ============ SCREEN SWITCHING ============ */
+  const screens = {
+    landing: document.getElementById('screen-landing'),
+    auth: document.getElementById('screen-auth'),
+    dashboard: document.getElementById('screen-dashboard'),
+  };
+  function showScreen(name){
+    Object.keys(screens).forEach(k=> screens[k].classList.toggle('hidden', k!==name));
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  document.getElementById('brandHome').addEventListener('click', ()=> showScreen(currentUser?'dashboard':'landing'));
+  document.getElementById('heroSeeFeatures').addEventListener('click', ()=>{
+    document.getElementById('features').scrollIntoView({behavior:'smooth'});
+  });
+
+  function openAuth(mode){
+    showScreen('auth');
+    setAuthMode(mode);
+  }
+  document.getElementById('navLoginBtn').addEventListener('click', ()=>openAuth('login'));
+  document.getElementById('navRegisterBtn').addEventListener('click', ()=>openAuth('register'));
+  document.getElementById('heroGetStarted').addEventListener('click', ()=>openAuth('register'));
+  document.getElementById('goRegister').addEventListener('click', ()=>setAuthMode('register'));
+  document.getElementById('goLogin').addEventListener('click', ()=>setAuthMode('login'));
+  document.getElementById('tabLogin').addEventListener('click', ()=>setAuthMode('login'));
+  document.getElementById('tabRegister').addEventListener('click', ()=>setAuthMode('register'));
+
+  function setAuthMode(mode){
+    const isLogin = mode==='login';
+    document.getElementById('tabLogin').classList.toggle('active', isLogin);
+    document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+    document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
+    document.getElementById('registerForm').classList.toggle('hidden', isLogin);
+    hideAuthMsg();
+  }
+  function showAuthMsg(text, type){
+    const el = document.getElementById('authMsg');
+    el.textContent = text; el.className = 'msg ' + (type||'error');
+  }
+  function hideAuthMsg(){
+    const el = document.getElementById('authMsg');
+    el.className = 'msg'; el.textContent='';
+  }
+
+  async function authRequest(path, body){
+    let r;
+    try{ r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }); }
+    catch(e){ throw { code:'NO_SERVER' }; }
+    const d = await r.json().catch(()=>null);
+    if(!r.ok || !d || !d.user) throw { code: d && d.code, message: d && d.error };
+    return d.user;
+  }
+  function authErrText(err, fallback){
+    const c = err && err.code;
+    if(c === 'NO_SERVER') return T('err.noServer');
+    if(c === 'EXISTS') return T('err.exists');
+    if(c === 'NO_ACCOUNT') return T('err.noAccount');
+    if(c === 'BAD_PASSWORD') return T('err.badPass');
+    return (err && err.message) || fallback;
+  }
+
+  document.getElementById('registerSubmit').addEventListener('click', async ()=>{
+    const name = document.getElementById('regName').value.trim();
+    const mobile = document.getElementById('regMobile').value.trim();
+    const pass = document.getElementById('regPass').value;
+    if(!name){ showAuthMsg(T('err.name')); return; }
+    if(!/^\d{10}$/.test(mobile)){ showAuthMsg(T('err.mobile')); return; }
+    if(!pass || pass.length<6){ showAuthMsg(T('err.pass6')); return; }
+    try{
+      if(API_OK){
+        // Account is created in the server database
+        currentUser = await authRequest('/api/register', { name, mobile, password: pass });
+      }else{
+        // No server (demo only): saved in this browser
+        const key = 'kisanmitra:user:'+mobile;
+        let existing = null;
+        try{ existing = await store.get(key); }catch(e){ existing = null; }
+        if(existing){ showAuthMsg(T('err.exists')); return; }
+        const userObj = {name, mobile, password: pass};
+        await store.set(key, JSON.stringify(userObj));
+        currentUser = userObj;
+      }
+      enterDashboard();
+    }catch(err){
+      showAuthMsg(authErrText(err, T('err.createFail')));
+    }
+  });
+
+  document.getElementById('loginSubmit').addEventListener('click', async ()=>{
+    const mobile = document.getElementById('loginMobile').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    if(!/^\d{10}$/.test(mobile)){ showAuthMsg(T('err.mobile')); return; }
+    if(!pass){ showAuthMsg(T('err.pass')); return; }
+    try{
+      if(API_OK){
+        currentUser = await authRequest('/api/login', { mobile, password: pass });
+      }else{
+        const key = 'kisanmitra:user:'+mobile;
+        let existing;
+        try{ existing = await store.get(key); }
+        catch(e){ showAuthMsg(T('err.noAccount')); return; }
+        const userObj = JSON.parse(existing.value);
+        if(userObj.password !== pass){ showAuthMsg(T('err.badPass')); return; }
+        currentUser = userObj;
+      }
+      enterDashboard();
+    }catch(err){
+      showAuthMsg(authErrText(err, T('err.loginFail')));
+    }
+  });
+
+  function renderNav(){
+    const host = document.getElementById('navActions');
+    if(currentUser){
+      host.innerHTML = '<div class="user-chip"><span data-i18n="nav.hi"></span> <strong>'+escapeHtml(currentUser.name.split(' ')[0])+'</strong></div>';
+    }else{
+      host.innerHTML = '<button class="pill-btn" id="navLoginBtn" data-i18n="nav.login"></button>'+
+        '<button class="pill-btn solid" id="navRegisterBtn"><span class="long" data-i18n="nav.start"></span><span class="short" data-i18n="nav.signup"></span></button>';
+      document.getElementById('navLoginBtn').addEventListener('click', ()=>openAuth('login'));
+      document.getElementById('navRegisterBtn').addEventListener('click', ()=>openAuth('register'));
+    }
+    KM.apply(host);
+  }
+  function renderWelcome(){
+    document.getElementById('welcomeName').textContent = currentUser ? T('dash.welcome', {name: currentUser.name.split(' ')[0]}) : T('dash.welcomeNoName');
+  }
+  function enterDashboard(){
+    hideAuthMsg();
+    renderWelcome();
+    renderNav();
+    document.getElementById('regName').value='';
+    document.getElementById('regMobile').value='';
+    document.getElementById('regPass').value='';
+    document.getElementById('loginMobile').value='';
+    document.getElementById('loginPass').value='';
+    showScreen('dashboard');
+  }
+  document.getElementById('logoutBtn').addEventListener('click', ()=>{
+    currentUser = null;
+    renderNav();
+    showScreen('landing');
+  });
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  /* ============ TICKER BOARD ============ */
+  let tickerIdx = 0;
+  const dotsHost = document.getElementById('boardDots');
+  CROPS.forEach((c,i)=>{
+    const s = document.createElement('span');
+    if(i===0) s.className='active';
+    dotsHost.appendChild(s);
+  });
+  function renderTicker(){
+    const crop = CROPS[tickerIdx];
+    const ls = LIVE.live ? liveSeries(crop.id, 'avg') : null;
+    let avg, changePct = null;
+    if(ls && ls.values.length){
+      avg = ls.values[ls.values.length-1];
+      if(ls.values.length >= 2){ const prev = ls.values[ls.values.length-2]; changePct = (avg-prev)/prev*100; }
+    }else{
+      const t = trendFor(crop.id, 'avg', 30);
+      avg = t[t.length-1];
+      const prev = t[t.length-2];
+      changePct = ((avg-prev)/prev*100);
+    }
+    document.getElementById('tickerCrop').textContent = cn(crop);
+    document.getElementById('tickerCropHi').textContent = '';
+    document.getElementById('tickerPrice').textContent = inr(avg);
+    const chEl = document.getElementById('tickerChange');
+    if(changePct == null){
+      chEl.textContent = (ls ? T('board.live') + ' · ' + fmtShort(ls.dates[ls.dates.length-1]) : '');
+      chEl.className = 'board-change';
+    }else{
+      const up = changePct >= 0;
+      chEl.textContent = (up?'▲ +':'▼ ') + changePct.toFixed(2) + '% ' + T('board.vsYesterday');
+      chEl.className = 'board-change ' + (up?'up':'down');
+    }
+    Array.from(dotsHost.children).forEach((d,i)=>d.classList.toggle('active', i===tickerIdx));
+  }
+  function cycleTicker(){
+    const fade = document.getElementById('boardFade');
+    fade.classList.add('out');
+    setTimeout(()=>{
+      tickerIdx = (tickerIdx+1) % CROPS.length;
+      renderTicker();
+      fade.classList.remove('out');
+    }, 250);
+  }
+  renderTicker();
+  setInterval(cycleTicker, 3600);
+
+  /* ============ SELECT / CHIP BUILDERS ============ */
+  function fillCropSelect(sel){
+    const v = sel.value;
+    sel.innerHTML = CROPS.map(c=>`<option value="${c.id}">${cn(c)}</option>`).join('');
+    if(v) sel.value = v;
+  }
+  function fillMandiSelect(sel, withAvg){
+    const v = sel.value;
+    let html = withAvg ? `<option value="avg">${T('mandi.avg')}</option>` : '';
+    html += MANDIS.map(m=>`<option value="${m}">${mn(m)}</option>`).join('');
+    sel.innerHTML = html;
+    if(v) sel.value = v;
+  }
+
+  const cmpCrop = document.getElementById('cmpCrop');
+  fillCropSelect(cmpCrop);
+  const cmpChipsHost = document.getElementById('cmpMandiChips');
+  const selectedMandis = new Set(MANDIS.slice(0,4));
+  const cmpChips = {};
+  MANDIS.forEach(m=>{
+    const chip = document.createElement('button');
+    chip.type='button'; chip.className='chip' + (selectedMandis.has(m)?' selected':'');
+    chip.textContent = mn(m);
+    cmpChips[m] = chip;
+    chip.addEventListener('click', ()=>{
+      if(selectedMandis.has(m)){ selectedMandis.delete(m); chip.classList.remove('selected'); }
+      else{ selectedMandis.add(m); chip.classList.add('selected'); }
+    });
+    cmpChipsHost.appendChild(chip);
+  });
+
+  document.getElementById('cmpCompareBtn').addEventListener('click', ()=>{
+    const cropId = cmpCrop.value;
+    const crop = cropById(cropId);
+    const mandiList = Array.from(selectedMandis);
+    const resultsHost = document.getElementById('cmpResults');
+    const noteHost = document.getElementById('cmpBestNote');
+    if(mandiList.length === 0){
+      resultsHost.innerHTML = '<p class="hint">'+T('cmp.none')+'</p>';
+      noteHost.classList.add('hidden');
+      return;
+    }
+    let rows = mandiList.map(m=>({mandi:m, price:priceFor(cropId,m), live: livePrice(cropId,m)!=null})).sort((a,b)=>b.price-a.price);
+    let skipped = [];
+    if(LIVE.live && rows.some(r=>r.live)){
+      skipped = rows.filter(r=>!r.live).map(r=>r.mandi);
+      rows = rows.filter(r=>r.live);
+    }
+    const best = rows[0], worst = rows[rows.length-1];
+    resultsHost.innerHTML = rows.map((r,i)=>`
+      <div class="price-row ${i===0?'best':''}" data-m="${r.mandi}">
+        <span class="m-name">${i===0?'🏆 ':''}${mn(r.mandi)} ${i===0?'<span class="badge">'+T('cmp.best')+'</span>':''}${(LIVE.live && !r.live)?'<span class="badge" style="background:#b8b2a0;color:#333">'+T('common.sample')+'</span>':''}</span>
+        <span><span class="p num">${inr(r.price)}</span><span class="delta">${T('common.perQuintal')}</span></span>
+      </div>`).join('') + (skipped.length ? `<p class="hint" style="margin-top:10px;">${T('cmp.skipped',{list:skipped.map(mn).join(', ')})}</p>` : '') + (LIVE.live && rows.some(r=>r.live) ? `<p class="hint" style="margin-top:6px;">${T('cmp.liveDate',{date:LIVE.asOf})}</p>` : '');
+    if(rows.length>1){
+      noteHost.classList.remove('hidden');
+      noteHost.textContent = T('cmp.note',{crop:cn(crop), best:mn(best.mandi), amt:inr(best.price-worst.price), worst:mn(worst.mandi)});
+    } else {
+      noteHost.classList.add('hidden');
+    }
+  });
+
+  /* ============ TRENDS ============ */
+  const trendCrop = document.getElementById('trendCrop');
+  const trendMandi = document.getElementById('trendMandi');
+  fillCropSelect(trendCrop);
+  fillMandiSelect(trendMandi, true);
+  let trendChart = null;
+  function renderTrend(){
+    const cropId = trendCrop.value;
+    const mandi = trendMandi.value;
+    const crop = cropById(cropId);
+    const ls = LIVE.live ? liveSeries(cropId, mandi) : null;
+    const useLive = !!(ls && ls.values.length >= 2);
+    const data = useLive ? ls.values.map(v=>Math.round(v)) : trendFor(cropId, mandi, 30);
+    const labels = useLive ? ls.dates.map(fmtShort) : dateLabels(30);
+    const days = data.length;
+    const noteEl = document.getElementById('trendNote');
+    if(useLive) noteEl.textContent = T('trend.noteLive',{days});
+    else if(LIVE.live) noteEl.textContent = T('trend.noteShort');
+    else noteEl.textContent = T('trend.noteSample');
+    const first = data[0], last = data[data.length-1];
+    const changePct = ((last-first)/first*100);
+    const max = Math.max(...data), min = Math.min(...data);
+    document.getElementById('trendStats').innerHTML = `
+      <div class="trend-stat"><div class="n ${changePct>=0?'up':'down'}">${changePct>=0?'▲ +':'▼ '}${changePct.toFixed(1)}%</div><div class="l">${T('trend.change',{days})}</div></div>
+      <div class="trend-stat"><div class="n">${inr(last)}</div><div class="l">${T('trend.latest')}</div></div>
+      <div class="trend-stat"><div class="n">${inr(max)}</div><div class="l">${T('trend.high')}</div></div>
+      <div class="trend-stat"><div class="n">${inr(min)}</div><div class="l">${T('trend.low')}</div></div>
+    `;
+    if(!chartOK('trendChart')) return;
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    if(trendChart) trendChart.destroy();
+    trendChart = new Chart(ctx, {
+      type:'line',
+      data:{ labels, datasets:[{
+        label: T('trend.series',{crop:cn(crop)}),
+        data,
+        borderColor:'#25523A',
+        backgroundColor:'rgba(37,82,58,0.12)',
+        fill:true, tension:0.3, pointRadius:0, borderWidth:2.5,
+      }]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{
+          x:{ ticks:{ maxTicksLimit:8, color:'#41503f' }, grid:{ display:false } },
+          y:{ ticks:{ color:'#41503f', callback:v=>'₹'+v.toLocaleString('en-IN') }, grid:{ color:'rgba(26,43,30,0.08)' } }
+        }
+      }
+    });
+    renderTrendBar();
+  }
+  let trendBar = null;
+  function renderTrendBar(){
+    const cropId = trendCrop.value;
+    const crop = cropById(cropId);
+    const sel = trendMandi.value;
+    const rows = MANDIS.map(m=>({ mandi:m, price:priceFor(cropId,m), live: livePrice(cropId,m)!=null }))
+                       .sort((a,b)=>b.price-a.price);
+    const colors = rows.map(r=>{
+      if(r.mandi===sel) return '#E2A33B';                 // chosen mandi
+      return (LIVE.live && !r.live) ? '#B8B2A0' : '#25523A'; // sample = grey
+    });
+    document.getElementById('trendBarTitle').textContent = T('trend.barTitleCrop',{crop:cn(crop)});
+    const liveRows = rows.filter(r=>r.live);
+    const cmp = (LIVE.live && liveRows.length >= 2) ? liveRows : rows;   // do not compare sample with live
+    const best = cmp[0], low = cmp[cmp.length-1];
+    document.getElementById('trendBarHint').textContent =
+      T('trend.barHint',{best:mn(best.mandi), bp:inr(best.price), low:mn(low.mandi), lp:inr(low.price), diff:inr(best.price-low.price)}) +
+      (LIVE.live ? T('trend.greyLive') : T('trend.greySample')) +
+      (sel!=='avg' ? T('trend.yellow') : '');
+    if(!chartOK('trendBarChart')) return;
+    const ctx = document.getElementById('trendBarChart').getContext('2d');
+    if(trendBar) trendBar.destroy();
+    trendBar = new Chart(ctx, {
+      type:'bar',
+      data:{ labels: rows.map(r=>mn(r.mandi)), datasets:[{
+        label: T('trend.series',{crop:cn(crop)}),
+        data: rows.map(r=>r.price),
+        backgroundColor: colors, borderRadius:6,
+      }]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>T('trend.tip',{v:inr(c.parsed.y)}) } } },
+        scales:{
+          x:{ ticks:{ color:'#41503f' }, grid:{ display:false } },
+          y:{ ticks:{ color:'#41503f', callback:v=>'₹'+v.toLocaleString('en-IN') }, grid:{ color:'rgba(26,43,30,0.08)' } }
+        }
+      }
+    });
+  }
+  trendCrop.addEventListener('change', renderTrend);
+  trendMandi.addEventListener('change', renderTrend);
+
+  /* ============ CROPS SOLD: pie chart per mandi, per day / week / month ============ */
+  /* The price feed has no tonnes. "Trade records" = how many price entries Agmarknet reported for the crop in that
+     mandi in the period (more records = more trading). It shows which crop is traded most, not exact quantity. */
+  const salesMandi = document.getElementById('salesMandi'), salesPeriod = document.getElementById('salesPeriod');
+  const SALES_DAYS = { day:1, week:7, month:30 };
+  const SALES_W = { wheat:10, soybean:8, gram:5, mustard:4, paddy:6, maize:4, onion:7, potato:6, tomato:5, cotton:3 };
+  const PIE_COLORS = ['#25523A','#E2A33B','#B23A2E','#3E7CB1','#8E5BA6','#6BA368','#C46A3C','#2F9C95','#9C8F3A','#7A7A7A'];
+  const isoOf = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  let salesPie = null;
+  function fillSalesSelects(){
+    const km = salesMandi.value, kp = salesPeriod.value;
+    salesMandi.innerHTML = `<option value="all">${T('sales.all')}</option>` + MANDIS.map(m=>`<option value="${m}">${mn(m)}</option>`).join('');
+    salesPeriod.innerHTML = ['day','week','month'].map(k=>`<option value="${k}">${T('sales.p.'+k)}</option>`).join('');
+    if(km) salesMandi.value = km; if(kp) salesPeriod.value = kp; else salesPeriod.value = 'week';
+  }
+  function salesMatrix(period){
+    const n = SALES_DAYS[period], mat = {};
+    MANDIS.forEach(m=>{ mat[m] = {}; });
+    if(LIVE.live && LIVE.asOf){
+      const end = LIVE.asOf, sd = new Date(end+'T00:00:00'); sd.setDate(sd.getDate()-(n-1));
+      const start = isoOf(sd);
+      CROPS.forEach(c=>{
+        const h = LIVE.history[c.id] || {};
+        MANDIS.forEach(m=>{ (h[m]||[]).forEach(x=>{ if(x.date>=start && x.date<=end) mat[m][c.id] = (mat[m][c.id]||0) + (x.n||1); }); });
+      });
+      return { mat, live:true, start, end };
+    }
+    const today = new Date(); let start = null;
+    for(let i=0;i<n;i++){
+      const d = new Date(today); d.setDate(d.getDate()-i); const iso = isoOf(d); start = iso;
+      CROPS.forEach(c=>MANDIS.forEach(m=>{
+        const r = mulberry32(hashStr('sales|'+c.id+'|'+m+'|'+iso));
+        const f = 0.7 + (mulberry32(hashStr('mf|'+m))())*0.6;
+        mat[m][c.id] = (mat[m][c.id]||0) + Math.round((SALES_W[c.id]||5)*f*(0.6+r()*0.8)*2) + 1;
+      }));
+    }
+    return { mat, live:false, start, end:isoOf(today) };
+  }
+  function renderSales(){
+    const sel = salesMandi.value || 'all', period = salesPeriod.value || 'week';
+    const M = salesMatrix(period);
+    const per = {};   // per mandi totals + top crop
+    MANDIS.forEach(m=>{
+      const e = Object.entries(M.mat[m]).sort((a,b)=>b[1]-a[1]);
+      per[m] = { total: e.reduce((s,x)=>s+x[1],0), top: e[0] ? e[0][0] : null };
+    });
+    const cnt = {};
+    (sel==='all' ? MANDIS : [sel]).forEach(m=>Object.entries(M.mat[m]).forEach(([c,v])=>{ cnt[c] = (cnt[c]||0) + v; }));
+    const rows = Object.entries(cnt).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+    const total = rows.reduce((s,x)=>s+x[1],0);
+    const mname = sel==='all' ? T('sales.allShort') : mn(sel);
+    const fmtD = iso => new Date(iso+'T00:00:00').toLocaleDateString(KM.locale(),{day:'numeric',month:'short'});
+    const range = M.start===M.end ? fmtD(M.end) : fmtD(M.start)+' – '+fmtD(M.end);
+    let note = M.live ? T('sales.noteLive',{range}) : T('sales.noteSample',{range});
+    if(M.live && LIVE.maxDays < SALES_DAYS[period]) note += ' ' + T('sales.shortHist',{days:LIVE.maxDays});
+    document.getElementById('salesNote').textContent = note;
+
+    const tbl = document.getElementById('salesTable'), concl = document.getElementById('salesConcl');
+    if(!rows.length){
+      tbl.innerHTML = '<p class="hint">'+T('sales.empty')+'</p>'; concl.innerHTML = '';
+      if(salesPie){ salesPie.destroy(); salesPie = null; }
+    }else{
+      const col = {}; rows.forEach((x,i)=>{ col[x[0]] = PIE_COLORS[i % PIE_COLORS.length]; });
+      tbl.innerHTML = `<table><thead><tr><th>${T('sales.c.crop')}</th><th>${T('sales.c.count')}</th><th>${T('sales.c.share')}</th></tr></thead><tbody>` +
+        rows.map((x,i)=>`<tr class="${i===0?'top':''}"><td><span class="sw" style="background:${col[x[0]]}"></span>${escapeHtml(cn(cropById(x[0])))}${i===0?' 🏆':''}</td><td>${x[1].toLocaleString('en-IN')}</td><td>${(x[1]/total*100).toFixed(1)}%</td></tr>`).join('') +
+        `<tr style="font-weight:700"><td>${T('sales.total')}</td><td>${total.toLocaleString('en-IN')}</td><td>100%</td></tr></tbody></table>`;
+      const top = rows[0], last = rows[rows.length-1], top3 = rows.slice(0,3);
+      concl.innerHTML = `<div class="be-verdict pos" style="margin-top:14px"><h4>📌 ${T('sales.k.h')}</h4>
+        <p>${T('sales.k.top',{mandi:'<b>'+escapeHtml(mname)+'</b>', period:T('sales.pl.'+period), crop:'<b>'+escapeHtml(cn(cropById(top[0])))+'</b>', n:top[1].toLocaleString('en-IN'), pct:(top[1]/total*100).toFixed(1)})}</p>
+        ${rows.length>1?`<p>${T('sales.k.least',{crop:'<b>'+escapeHtml(cn(cropById(last[0])))+'</b>', pct:(last[1]/total*100).toFixed(1)})}</p>`:''}
+        ${rows.length>2?`<p>${T('sales.k.top3',{list:top3.map(x=>escapeHtml(cn(cropById(x[0])))).join(', '), pct:(top3.reduce((s,x)=>s+x[1],0)/total*100).toFixed(0)})}</p>`:''}
+        <ul class="be-list"><li>${T('sales.k.caveat')}</li>${M.live?'':'<li>'+T('sales.k.sample')+'</li>'}</ul></div>`;
+      if(chartOK('salesPie')){
+        if(salesPie) salesPie.destroy();
+        salesPie = new Chart(document.getElementById('salesPie').getContext('2d'), {
+          type:'pie',
+          data:{ labels: rows.map(x=>cn(cropById(x[0]))), datasets:[{ data: rows.map(x=>x[1]), backgroundColor: rows.map(x=>col[x[0]]), borderColor:'#FFFDF6', borderWidth:2 }]},
+          options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` ${c.label}: ${c.parsed.toLocaleString('en-IN')} (${(c.parsed/total*100).toFixed(1)}%)` } } } }
+        });
+      }
+    }
+    const mx = Math.max(1, ...MANDIS.map(m=>per[m].total));
+    document.getElementById('salesMandiTotals').innerHTML = MANDIS.slice().sort((a,b)=>per[b].total-per[a].total).map(m=>
+      `<div class="mt-row ${m===sel?'sel':''}"><span>${escapeHtml(mn(m))}</span><span class="mt-bar"><i style="width:${per[m].total/mx*100}%"></i></span><span class="v">${per[m].total.toLocaleString('en-IN')}${per[m].top?' · '+escapeHtml(cn(cropById(per[m].top))):''}</span></div>`).join('') +
+      `<p class="hint" style="margin-top:6px">${T('sales.perMandiNote')}</p>`;
+  }
+  fillSalesSelects();
+  salesMandi.addEventListener('change', renderSales);
+  salesPeriod.addEventListener('change', renderSales);
+
+  /* ============ ESTIMATED RETURNS ============ */
+  const retCrop = document.getElementById('retCrop');
+  const retMandi = document.getElementById('retMandi');
+  const retPrice = document.getElementById('retPrice');
+  fillCropSelect(retCrop);
+  fillMandiSelect(retMandi, false);
+  function autofillRetPrice(){ retPrice.value = priceFor(retCrop.value, retMandi.value); }
+  retCrop.addEventListener('change', autofillRetPrice);
+  retMandi.addEventListener('change', autofillRetPrice);
+  autofillRetPrice();
+
+  document.getElementById('retCalcBtn').addEventListener('click', ()=>{
+    const qty = parseFloat(document.getElementById('retQty').value) || 0;
+    const price = parseFloat(retPrice.value) || 0;
+    const transport = parseFloat(document.getElementById('retTransport').value) || 0;
+    const other = parseFloat(document.getElementById('retOther').value) || 0;
+    const gross = qty*price;
+    const totalCosts = transport+other;
+    const net = gross-totalCosts;
+    const perQtl = qty>0 ? net/qty : 0;
+    document.getElementById('rrGross').textContent = inr(gross);
+    document.getElementById('rrCosts').textContent = inr(totalCosts);
+    document.getElementById('rrNet').textContent = inr(net);
+    document.getElementById('rrPerQtl').textContent = inr(perQtl);
+    document.getElementById('retResults').classList.remove('hidden');
+  });
+
+  /* ============ TABS ============ */
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+      if(btn.dataset.tab === 'trends'){ if(!trendChart) renderTrend(); renderSales(); }
+      if(btn.dataset.tab === 'weather') loadWeatherGrid();
+    });
+  });
+
+  /* ============ PRINTABLE BREAK-EVEN CARD ============ */
+  const BE_DEFAULTS = { beTLo:'', beTHi:'', beOLo:'0', beOHi:'0', beLLo:'0', beLHi:'0' };
+  const $be = id => document.getElementById(id);
+  const beNum = id => { const v = $be(id).value.trim().replace(',', '.'); return v === '' ? NaN : parseFloat(v); };
+  function readBE(){
+    return {
+      costLow: beNum('beTLo'), costHigh: beNum('beTHi'),
+      otherLow: beNum('beOLo'), otherHigh: beNum('beOHi'),
+      localCostLow: beNum('beLLo'), localCostHigh: beNum('beLHi'),
+    };
+  }
+  function beBuildCard(){
+    const i = readBE();
+    const card = $be('beCard');
+    const costs = [i.costLow,i.costHigh,i.otherLow,i.otherHigh,i.localCostLow,i.localCostHigh];
+    if(costs.some(x=>!isFinite(x)) || i.costLow>i.costHigh || i.otherLow>i.otherHigh || i.localCostLow>i.localCostHigh){
+      card.classList.remove('hidden');
+      card.innerHTML = '<p>'+T('be.cardBad')+'</p>';
+      return false;
+    }
+    const be = NetReturn.breakEven(i);
+    const rows = NetReturn.cardRows(be, 10, 30, 2);
+    const valid = $be('beValid').value ? new Date($be('beValid').value+'T00:00:00') : new Date(Date.now()+7*86400000);
+    const validTxt = valid.toLocaleDateString(KM.locale(),{day:'numeric',month:'short',year:'numeric'});
+    const gapTxt = be.high === 0
+      ? T('be.cardZero')
+      : T('be.cardGap',{lo:be.low, hi:be.high});
+    card.classList.remove('hidden');
+    card.innerHTML = `
+      <h4>${T('be.cardTitle')}</h4>
+      <p class="hi">${gapTxt}</p>
+      <table><tr><th>${T('be.cardTh1')}</th><th>${T('be.cardTh2')}</th></tr>
+      ${rows.map(r=>`<tr><td>${r.nearby}</td><td>${r.needLow === r.needHigh ? r.needLow : (r.needLow+' – '+r.needHigh)}</td></tr>`).join('')}</table>
+      <p class="hi">• ${T('be.cardP1')}</p>
+      <p class="hi">• ${T('be.cardP2')}</p>
+      <p class="hi">• ${T('be.cardP3')}</p>
+      <p class="hi">• ${T('be.cardP4')}</p>
+      <p class="hi"><small>${T('be.cardBasis',{a:i.costLow,b:i.costHigh,c:i.otherLow,d:i.otherHigh,e:i.localCostLow,f:i.localCostHigh,sim:''})}</small></p>
+      <p class="hi"><b>${T('be.cardValid',{date:validTxt})}</b></p>`;
+    return true;
+  }
+
+  (function initBE(){
+    const d = new Date(Date.now()+7*86400000);
+    $be('beValid').value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    Object.keys(BE_DEFAULTS).forEach(id=>{ $be(id).value = BE_DEFAULTS[id]; });
+    $be('beCardBtn').addEventListener('click', beBuildCard);
+    $be('bePrint').addEventListener('click', ()=>{ if(beBuildCard()) window.print(); });
+  })();
+
+
+  /* ============ MANDI-WISE PROFIT TABLE (portal style) ============ */
+  const BM_GEO={Gwalior:[26.2183,78.1828],Bhopal:[23.2599,77.4126],Indore:[22.7196,75.8577],Ujjain:[23.1765,75.7885],Sagar:[23.8388,78.7378],Jabalpur:[23.1815,79.9864],Morena:[26.4947,77.9930],Shivpuri:[25.4231,77.6600]};
+  const bm = id => document.getElementById(id);
+  const bmKm=(a,b)=>{ if(a===b) return 0; const R=6371,r=x=>x*Math.PI/180,A=BM_GEO[a],B=BM_GEO[b],dl=r(B[0]-A[0]),dn=r(B[1]-A[1]);
+    const x=Math.sin(dl/2)**2+Math.cos(r(A[0]))*Math.cos(r(B[0]))*Math.sin(dn/2)**2; return 2*R*Math.asin(Math.sqrt(x))*1.3; }; // x1.3: road is longer than a straight line
+  const bmRs = n => (n<0?'−':'')+'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN');
+  const bmSigned = n => (n>0?'+':'')+(n<0?'−':'')+(n===0?'':'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN')) + (n===0?'₹0':'');
+  const BM_VEH = ['mini','pickup','tractor','truck'];
+  let bmShown = false;
+  function fillBmSelects(){
+    const kc=bm('bmCrop').value, kt=bm('bmTarget').value, kl=bm('bmLocal').value, km=bm('bmMode').value, kv=bm('bmVeh').value;
+    bm('bmCrop').innerHTML = CROPS.map(c=>`<option value="${c.id}">${cn(c)}</option>`).join('');
+    bm('bmLocal').innerHTML = MANDIS.map(m=>`<option value="${m}">${mn(m)}</option>`).join('');
+    bm('bmTarget').innerHTML = MANDIS.map(m=>`<option value="${m}">${mn(m)}</option>`).join('');
+    bm('bmMode').innerHTML = ['auto','perKm','fixed'].map(k=>`<option value="${k}">${T('bm.mode.'+k)}</option>`).join('');
+    bm('bmVeh').innerHTML = `<option value="any">${T('bm.vehAny')}</option>` + BM_VEH.map(v=>`<option value="${v}">${T('bm.v.'+v)}</option>`).join('');
+    if(kc) bm('bmCrop').value=kc; if(kl) bm('bmLocal').value=kl; bm('bmTarget').value = kt || MANDIS[1]; if(km) bm('bmMode').value=km; if(kv) bm('bmVeh').value=kv;
+    bmModeUi();
+  }
+  function bmModeUi(){
+    const m=bm('bmMode').value;
+    bm('bmVehWrap').classList.toggle('hidden', m!=='auto');
+    bm('bmRateWrap').classList.toggle('hidden', m!=='perKm');
+    bm('bmFixedWrap').classList.toggle('hidden', m!=='fixed');
+    bm('bmModeHint').textContent = T('bm.modeHint.'+m);
+  }
+  function bmRead(){
+    const num = id => { const v=parseFloat(bm(id).value.replace(',','.')); return isFinite(v)?v:NaN; };
+    return { crop:bm('bmCrop').value, local:bm('bmLocal').value, target:bm('bmTarget').value, qty:num('bmQty'), mode:bm('bmMode').value, veh:bm('bmVeh').value,
+      rate:num('bmRate'), fixed:num('bmFixed'), other:isNaN(num('bmOther'))?0:num('bmOther'), localCost:isNaN(num('bmLocalCost'))?0:num('bmLocalCost') };
+  }
+  function bmRender(){
+    const out = bm('bmOut'), i = bmRead();
+    const bad = k => { out.innerHTML = '<div class="be-verdict neg"><h4>'+T(k)+'</h4></div>'; };
+    if(!(i.qty>=1 && i.qty<=5000)) return bad('bm.badQty');
+    if(i.mode==='perKm' && !(i.rate>=0)) return bad('bm.needRate');
+    if(i.mode==='fixed' && !(i.fixed>=0)) return bad('bm.needFixed');
+    if(i.local===i.target) return bad('bm.same');
+    const transport = { mode:i.mode, vehicle:i.veh, ratePerQtlKm:i.rate, fixedPerQtl:i.fixed };
+    const price = (crop,m)=>{
+      const p = LIVE.live && LIVE.prices[crop] && LIVE.prices[crop][m];
+      const live = !!(p && p.modal>0);
+      return { mandi:m, live, modal: live ? p.modal : samplePriceFor(crop,m), min: live?p.min:null, max: live?p.max:null, date: live?p.date:null, distKm: bmKm(i.local,m) };
+    };
+    const calc = rows => NetReturn.mandiTable({ rows, local:i.local, qty:i.qty, other:i.other, localCost:i.localCost, transport });
+    const dist = bmKm(i.local,i.target), tinfo = NetReturn.transportPerQtl(dist, i.qty, transport);
+
+    /* one line per crop, like the portal report: Crop | Min | Max | Modal, then my mandi, transport, what I keep, profit */
+    const lines = CROPS.map(c=>{
+      const res = calc([price(c.id,i.local), price(c.id,i.target)]);
+      const t = res.rows.find(r=>!r.isLocal), l = res.local;
+      return { crop:c, res, t, l };
+    });
+    const today = Date.now(), dates = lines.map(x=>x.t.date).filter(Boolean);
+    const old = dates.length && Math.max(...dates.map(d=>Math.floor((today-Date.parse(d+'T00:00:00'))/86400000))) > 3;
+    const dash = v => (v==null ? '–' : bmRs(v));
+    const body = lines.map((x,idx)=>{
+      const mine = x.crop.id===i.crop, adv = x.t.adv;
+      const ac = adv>0 ? (x.res.verdict==='PROFIT'?'gain':'') : (adv<0?'loss':'');
+      return `<tr class="${mine?'mine':''}"><td>${idx+1}</td>
+        <td><b>${escapeHtml(cn(x.crop))}</b>${mine?`<span class="bm-tag m">${T('bm.yourCrop')}</span>`:''}${x.t.live?'':`<span class="bm-tag">${T('common.sample')}</span>`}</td>
+        <td>${dash(x.t.min)}</td><td>${dash(x.t.max)}</td><td><b>${bmRs(x.t.modal)}</b></td>
+        <td>${bmRs(x.l.modal)}</td><td>${x.t.transport?bmRs(-x.t.transport):'–'}</td><td>${x.t.other?bmRs(-x.t.other):'–'}</td>
+        <td><b>${bmRs(x.t.net)}</b></td><td class="${ac}">${bmSigned(adv)}</td><td class="${ac}">${bmSigned(x.t.advTotal)}</td></tr>`;
+    }).join('');
+    const th = ['#','bm.c.crop','bm.c.min','bm.c.max','bm.c.modal','bm.c.local','bm.c.transport','bm.c.other','bm.c.net','bm.c.adv','bm.c.advTotal'];
+    const dTxt = dates.length ? new Date(dates[0]+'T00:00:00').toLocaleDateString(KM.locale(),{day:'2-digit',month:'short',year:'numeric'}) : T('bm.sampleDate');
+    const veh = tinfo.vehicle ? ' · '+T('bm.v.'+tinfo.vehicle) : '';
+    const table = `<div class="bm-title">${T('bm.report',{mandi:escapeHtml(mn(i.target))})}<small>${T('bm.reportSub',{local:escapeHtml(mn(i.local)), km:Math.round(dist), tr:bmRs(tinfo.perQtl), veh:veh, date:dTxt})}</small></div>
+      <div class="bm-wrap"><table class="bm-table"><thead><tr>${th.map((k,ix)=>`<th>${ix?T(k):T('bm.c.sno')}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+      <p class="hint" style="margin-top:8px">${T('bm.tableNote',{qty:i.qty})}</p>`;
+
+    /* ----- conclusion at the end ----- */
+    const mine = lines.find(x=>x.crop.id===i.crop), crop = escapeHtml(cn(mine.crop));
+    const tn = `<b>${escapeHtml(mn(i.target))}</b>`, ln = `<b>${escapeHtml(mn(i.local))}</b>`;
+    const all = calc(MANDIS.map(m=>price(i.crop,m)));
+    let cls='none', title='', ps=[];
+    const v = mine.res.verdict, t = mine.t;
+    if(v==='PROFIT'){ cls='pos'; title=T('bm.k2.profit',{crop,mandi:escapeHtml(mn(i.target))});
+      ps.push(T('bm.k2.profitBody',{crop,mandi:tn,net:bmRs(t.net),tr:bmRs(t.transport),adv:bmRs(t.adv),local:ln,total:bmRs(t.advTotal),qty:i.qty})); }
+    else if(v==='SMALL'){ cls='unc'; title=T('bm.k2.small',{crop});
+      ps.push(T('bm.k2.smallBody',{mandi:tn,adv:bmRs(t.adv),total:bmRs(t.advTotal),qty:i.qty,local:ln})); }
+    else { cls='neg'; title=T('bm.k2.none',{crop,local:escapeHtml(mn(i.local))});
+      ps.push(T('bm.k2.noneBody',{mandi:tn,adv:bmRs(Math.abs(t.adv)),local:ln,tr:bmRs(t.transport)})); }
+    /* best of all 8 mandis for my crop */
+    if(all.best && all.verdict==='PROFIT'){
+      ps.push(all.best.mandi===i.target ? T('bm.k2.bestIsThis',{mandi:tn}) : T('bm.k2.bestOther',{mandi:`<b>${escapeHtml(mn(all.best.mandi))}</b>`,net:bmRs(all.best.net),adv:bmRs(all.best.adv),total:bmRs(all.best.advTotal),qty:i.qty,local:ln}));
+    }else if(all.best && v!=='PROFIT'){
+      ps.push(T('bm.k2.noneAny',{local:ln}));
+    }
+    /* other crops that pay at this mandi */
+    const others = lines.filter(x=>x.crop.id!==i.crop && x.res.verdict==='PROFIT').sort((a,b)=>b.t.adv-a.t.adv).slice(0,3);
+    if(others.length) ps.push(T('bm.k2.others',{list:others.map(x=>escapeHtml(cn(x.crop))+' ('+bmSigned(x.t.adv)+')').join(', '), mandi:tn}));
+    const cautions = [];
+    if(lines.some(x=>!x.t.live)) cautions.push(T('bm.c.sample'));
+    if(old) cautions.push(T('bm.c.old'));
+    if(!i.other) cautions.push(T('bm.c.other0'));
+    cautions.push(T('bm.c.always'));
+    const act = (v==='PROFIT'||v==='SMALL'||(all.verdict==='PROFIT')) ? `<div class="btn-row"><button class="btn" id="bmFindTr" type="button">🚚 ${T('bm.findTr')}</button></div>` : '';
+    out.innerHTML = table + `<div class="be-verdict ${cls} bm-concl"><h4>📌 ${T('bm.k.h')}</h4><p class="big"><b>${title}</b></p>${ps.map(l=>'<p>'+l+'</p>').join('')}
+      <ul class="be-list">${cautions.map(c=>'<li>'+c+'</li>').join('')}</ul>${act}</div>`;
+    const f = bm('bmFindTr');
+    if(f) f.addEventListener('click', ()=>{
+      const tab = document.querySelector('.tab-btn[data-tab="transport"]'); if(!tab) return;
+      tab.click(); const a = document.getElementById('tpArea');
+      if(a && [...a.options].some(o=>o.value===i.local)){ a.value=i.local; a.dispatchEvent(new Event('change')); }
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+    bmShown = true;
+  }
+  fillBmSelects();
+  bm('bmMode').addEventListener('change', ()=>{ bmModeUi(); if(bmShown) bmRender(); });
+  bm('bmGo').addEventListener('click', bmRender);
+  ['bmCrop','bmLocal','bmTarget','bmVeh','bmQty','bmRate','bmFixed','bmOther','bmLocalCost'].forEach(id=>bm(id).addEventListener('input', ()=>{ if(bmShown) bmRender(); }));
+
+  /* ============ WEATHER ============ */
+  let WX_ALL = null;
+  const wxCustomList = [];   // searched places, kept so they can be redrawn in the other language
+  function wxIcon(rain, tmax){
+    if(rain>=15) return '⛈️'; if(rain>=5) return '🌧️'; if(rain>=1) return '🌦️';
+    if(tmax>=38) return '🥵'; if(tmax>=32) return '☀️'; return '⛅';
+  }
+  function wxCardHtml(title, w, sub){
+    const c = w.current || {};
+    const rows = (w.daily||[]).map(d=>`<tr><td>${fmtDay(d.date)}</td><td>${wxIcon(d.rain||0,d.tmax||0)}</td><td class="r">${Math.round(d.tmax)}°/${Math.round(d.tmin)}°</td><td class="r">${(d.rain||0).toFixed(1)} ${KM.lang==='hi'?'मिमी':'mm'}</td><td class="r">${d.rainProb==null?'–':d.rainProb+'%'}</td></tr>`).join('');
+    const unit = KM.lang==='hi'?'मिमी':'mm';
+    return `<div class="wx-card">
+      <div class="wx-head"><span class="n">${escapeHtml(title)}</span><span class="t">${c.temp!=null?Math.round(c.temp)+'°C':''}</span></div>
+      <div class="wx-sub">${sub?escapeHtml(sub)+' · ':''}${T('wx.now',{h:c.humidity!=null?c.humidity+'%':'–', r:c.rain!=null?c.rain+' '+unit:'–'})}</div>
+      <table class="wx-table"><tr><td></td><td></td><td class="r">${T('wx.max')}</td><td class="r">${T('wx.rain')}</td><td class="r">${T('wx.chance')}</td></tr>${rows}</table>
+    </div>`;
+  }
+  async function fetchJSON(url){
+    let r;
+    try{ r = await fetch(url); }catch(e){ throw new Error(T('err.server')); }
+    const d = await r.json().catch(()=>null);
+    if(!r.ok || !d) throw new Error((d && d.error) || ('HTTP '+r.status));
+    return d;
+  }
+  async function loadWeatherAll(){
+    if(WX_ALL) return WX_ALL;
+    const d = await fetchJSON('/api/weather');
+    WX_ALL = d.mandis;
+    return WX_ALL;
+  }
+  function drawWeatherGrid(){
+    const host = document.getElementById('wxGrid');
+    host.innerHTML = MANDIS.map(m=> WX_ALL[m] ? wxCardHtml(mn(m), WX_ALL[m], T('wx.mandiSub')) : '').join('');
+  }
+  function drawWeatherCustom(){
+    document.getElementById('wxCustom').innerHTML = wxCustomList.map(x=>wxCardHtml(x.title, x.w, x.sub)).join('');
+  }
+  async function loadWeatherGrid(){
+    const host = document.getElementById('wxGrid');
+    if(host.dataset.loaded) return;
+    try{
+      await loadWeatherAll();
+      drawWeatherGrid();
+      host.dataset.loaded = '1';
+    }catch(e){
+      host.innerHTML = `<p class="hint">${T('wx.fail',{msg:escapeHtml(e.message)})}</p>`;
+    }
+  }
+  document.getElementById('wxSearchBtn').addEventListener('click', async ()=>{
+    const q = document.getElementById('wxSearch').value.trim();
+    const resHost = document.getElementById('wxResults');
+    if(q.length < 2){ resHost.innerHTML = '<span class="hint">'+T('wx.min2')+'</span>'; return; }
+    resHost.innerHTML = '<span class="hint">'+T('common.searching')+'</span>';
+    try{
+      const d = await fetchJSON('/api/geocode?q='+encodeURIComponent(q)+'&lang='+KM.lang);
+      if(!d.results.length){ resHost.innerHTML = '<span class="hint">'+T('wx.none')+'</span>'; return; }
+      resHost.innerHTML = '';
+      d.results.forEach(pl=>{
+        const b = document.createElement('button');
+        b.type='button'; b.className='chip';
+        b.textContent = pl.name + (pl.district? ', '+pl.district : '') + (pl.state? ', '+pl.state : '');
+        b.addEventListener('click', async ()=>{
+          try{
+            const w = await fetchJSON('/api/weather?lat='+pl.lat+'&lon='+pl.lon);
+            wxCustomList.unshift({ title: pl.name, w: w.place, sub: [pl.district, pl.state].filter(Boolean).join(', ') });
+            drawWeatherCustom();
+            resHost.innerHTML = '';
+          }catch(e){ resHost.innerHTML = `<span class="hint">⚠️ ${escapeHtml(e.message)}</span>`; }
+        });
+        resHost.appendChild(b);
+      });
+    }catch(e){ resHost.innerHTML = `<span class="hint">⚠️ ${escapeHtml(e.message)}</span>`; }
+  });
+  document.getElementById('wxSearch').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('wxSearchBtn').click(); });
+
+  /* ============ PRICE FORECAST ============ */
+  const fcCrop = document.getElementById('fcCrop');
+  const fcMandi = document.getElementById('fcMandi');
+  fillCropSelect(fcCrop);
+  fillMandiSelect(fcMandi, false);
+  let fcChart = null;
+
+  function statForecast(values, horizon){
+    if(values.length < 5) return null;
+    const n = Math.min(values.length, 14);
+    const ys = values.slice(-n);
+    const xm = (n-1)/2, ym = ys.reduce((a,b)=>a+b,0)/n;
+    let sxy=0, sxx=0;
+    ys.forEach((y,i)=>{ sxy += (i-xm)*(y-ym); sxx += (i-xm)*(i-xm); });
+    const slope = sxx ? sxy/sxx : 0;
+    const icpt = ym - slope*xm;
+    const sd = Math.sqrt(ys.reduce((a,y,i)=>a+Math.pow(y-(icpt+slope*i),2),0)/n);
+    const last = ys[n-1], damp = 0.7;
+    const out = [];
+    for(let h=1; h<=horizon; h++){
+      const mean = Math.max(0, last + slope*damp*h);
+      const band = Math.max(sd*Math.sqrt(h), last*0.01);
+      out.push({ mean:Math.round(mean), lo:Math.round(Math.max(0, mean-band)), hi:Math.round(mean+band) });
+    }
+    return out;
+  }
+  function wxSummary(w){
+    const d = w.daily || [];
+    return {
+      totalRainMm7d: Number(d.reduce((a,x)=>a+(x.rain||0),0).toFixed(1)),
+      rainyDays: d.filter(x=>(x.rain||0)>=2.5).length,
+      maxTempC: Math.max(...d.map(x=>x.tmax)), minTempC: Math.min(...d.map(x=>x.tmin)),
+      daily: d.map(x=>({date:x.date, tmax:x.tmax, tmin:x.tmin, rainMm:x.rain, rainChancePct:x.rainProb}))
+    };
+  }
+  document.getElementById('fcBtn').addEventListener('click', async ()=>{
+    const cropId = fcCrop.value, mandi = fcMandi.value, crop = cropById(cropId);
+    const out = document.getElementById('fcOut');
+    const aiBox = document.getElementById('fcAI');
+    out.classList.remove('hidden');
+    aiBox.textContent = T('common.thinking');
+    document.getElementById('fcWx').innerHTML = '<span class="hint">'+T('fc.wxLoading')+'</span>';
+
+    // 1) price series
+    const ls = LIVE.live ? liveSeries(cropId, mandi) : null;
+    const isLive = !!(ls && ls.values.length);
+    let dates, values;
+    if(isLive){ dates = ls.dates; values = ls.values.map(v=>Math.round(v)); }
+    else{
+      values = trendFor(cropId, mandi, 30);
+      dates = []; for(let i=values.length-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); dates.push(d.toISOString().slice(0,10)); }
+    }
+    const badge = document.getElementById('fcBadge');
+    badge.className = 'fc-badge ' + (isLive?'live':'sample');
+    badge.textContent = isLive ? T('fc.badgeLive',{n:values.length, date:fmtShort(dates[dates.length-1])}) : T('fc.badgeSample');
+
+    const fc = statForecast(values, 7);
+    const latest = values[values.length-1];
+    const noteEl = document.getElementById('fcNote');
+    if(fc){
+      const end = fc[fc.length-1];
+      const chg = (end.mean-latest)/latest*100;
+      const dir = chg>2 ? T('fc.up') : chg<-2 ? T('fc.down') : T('fc.flat');
+      document.getElementById('fcStats').innerHTML = `
+        <div class="trend-stat"><div class="n">${inr(latest)}</div><div class="l">${T('fc.latest')}</div></div>
+        <div class="trend-stat"><div class="n ${chg>=0?'up':'down'}">${inr(end.mean)}</div><div class="l">${T('fc.in7')}</div></div>
+        <div class="trend-stat"><div class="n">${inr(end.lo)} – ${inr(end.hi)}</div><div class="l">${T('fc.range')}</div></div>
+        <div class="trend-stat"><div class="n ${chg>=0?'up':'down'}">${dir}</div><div class="l">${chg>=0?'+':''}${chg.toFixed(1)}%</div></div>`;
+      noteEl.textContent = T('fc.note');
+    }else{
+      document.getElementById('fcStats').innerHTML = `
+        <div class="trend-stat"><div class="n">${inr(latest)}</div><div class="l">${T('fc.latest')}</div></div>`;
+      noteEl.textContent = T('fc.short',{n:values.length});
+    }
+
+    // chart
+    const histLabels = dates.map(fmtShort);
+    const futLabels = fc ? fc.map((_,i)=>{ const d=new Date(dates[dates.length-1]+'T00:00:00'); d.setDate(d.getDate()+i+1); return d.toLocaleDateString(KM.locale(),{day:'2-digit',month:'short'}); }) : [];
+    const labels = histLabels.concat(futLabels);
+    const pad = (arr, startAt)=>{ const a = new Array(labels.length).fill(null); arr.forEach((v,i)=>{ a[startAt+i]=v; }); return a; };
+    const nH = values.length;
+    const sUp = T('fc.serie.up'), sLo = T('fc.serie.lo');
+    const datasets = [{ label:T('fc.serie.price'), data: pad(values,0), borderColor:'#25523A', backgroundColor:'rgba(37,82,58,0.10)', fill:false, tension:0.3, pointRadius: nH<15?3:0, borderWidth:2.5 }];
+    if(fc){
+      datasets.push({ label:T('fc.serie.fc'), data: pad([latest].concat(fc.map(x=>x.mean)), nH-1), borderColor:'#E2A33B', borderDash:[6,5], fill:false, tension:0.3, pointRadius:0, borderWidth:2.5 });
+      datasets.push({ label:sUp, data: pad([latest].concat(fc.map(x=>x.hi)), nH-1), borderColor:'rgba(226,163,59,0.35)', borderWidth:1, pointRadius:0, fill:false });
+      datasets.push({ label:sLo, data: pad([latest].concat(fc.map(x=>x.lo)), nH-1), borderColor:'rgba(226,163,59,0.35)', borderWidth:1, pointRadius:0, fill:'-1', backgroundColor:'rgba(226,163,59,0.15)' });
+    }
+    if(chartOK('fcChart')){
+    if(fcChart) fcChart.destroy();
+    fcChart = new Chart(document.getElementById('fcChart').getContext('2d'), {
+      type:'line', data:{ labels, datasets },
+      options:{ responsive:true, maintainAspectRatio:false, spanGaps:false,
+        plugins:{ legend:{ display:true, labels:{ filter:i=>i.text!==sUp && i.text!==sLo } } },
+        scales:{ x:{ ticks:{ maxTicksLimit:10, color:'#41503f' }, grid:{display:false} },
+                 y:{ ticks:{ color:'#41503f', callback:v=>'₹'+v.toLocaleString('en-IN') }, grid:{ color:'rgba(26,43,30,0.08)' } } } }
+    });
+    }
+
+    // 2) weather
+    let wx = null;
+    try{
+      const all = await loadWeatherAll();
+      wx = all[mandi];
+      document.getElementById('fcWx').innerHTML = '';
+      document.getElementById('fcWx').outerHTML = wxCardHtml(T('fc.wxTitle',{mandi:mn(mandi)}), wx, '').replace('class="wx-card"','class="wx-card" id="fcWx" style="margin-top:16px;"');
+    }catch(e){
+      document.getElementById('fcWx').innerHTML = `<span class="hint">${T('wx.fail',{msg:escapeHtml(e.message)})}</span>`;
+    }
+
+    // 3) AI explanation (server)
+    const others = MANDIS.filter(m=>m!==mandi && livePrice(cropId,m)!=null).map(m=>({mandi:m, price:livePrice(cropId,m)}));
+    const payload = {
+      lang: KM.lang,
+      crop: crop.name, mandi,
+      dataSource: isLive ? 'live Agmarknet data' : 'sample demo data',
+      latestPricePerQuintalINR: latest,
+      historyDays: values.length,
+      priceHistory: dates.map((d,i)=>({date:d, price:values[i]})).slice(-30),
+      statisticalForecast: fc ? fc.map((x,i)=>({day:i+1, expected:x.mean, low:x.lo, high:x.hi})) : null,
+      weatherNext7Days: wx ? wxSummary(wx) : null,
+      otherMandiPrices: others.length ? others : (LIVE.live ? [] : MANDIS.filter(m=>m!==mandi).map(m=>({mandi:m, price:samplePriceFor(cropId,m), note:'sample'})))
+    };
+    try{
+      const d = await (async()=>{
+        let r;
+        try{ r = await fetch('/api/forecast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }
+        catch(e){ throw new Error(T('err.server')); }
+        const j = await r.json().catch(()=>null);
+        if(!r.ok || !j || !j.text) throw new Error((j && j.error) || ('HTTP '+r.status));
+        return j;
+      })();
+      aiBox.textContent = d.text;
+    }catch(e){
+      aiBox.textContent = T('fc.aiFail',{msg:e.message});
+    }
+  });
+
+  /* ============ LOAD LIVE PRICES ============ */
+  function updateBanner(){
+    const b = document.getElementById('dataBanner');
+    if(LIVE.live){
+      b.style.background = '#E4EEE1'; b.style.color = '#123522'; b.style.borderColor = '#25523A';
+      const d = LIVE.asOf ? new Date(LIVE.asOf+'T00:00:00').toLocaleDateString(KM.locale(),{day:'numeric',month:'short',year:'numeric'}) : '';
+      b.textContent = T('banner.live',{state:LIVE.state, date:d});
+    }else if(LIVE.keyConfigured){
+      b.textContent = T('banner.fail');
+    }else{
+      b.textContent = T('banner.sample');
+    }
+  }
+  async function loadLive(){
+    if(!API_OK) return;
+    try{
+      const r = await fetch('/api/prices');
+      const d = await r.json();
+      if(d) LIVE = Object.assign(LIVE, d);
+    }catch(e){ /* server nahi hai: sample mode */ }
+    updateBanner(); renderTicker(); autofillRetPrice();
+    if(trendChart) renderTrend();
+    if(!document.getElementById('beCard').classList.contains('hidden')) beBuildCard();
+  }
+  loadLive();
+
+  /* ============ AI ASSISTANT ============ */
+  const chatWindow = document.getElementById('chatWindow');
+  const chatInput = document.getElementById('chatInput');
+  const chatSend = document.getElementById('chatSend');
+  const sHost = document.getElementById('chatSuggestions');
+  function buildSuggestions(){
+    sHost.innerHTML = '';
+    ['ai.s1','ai.s2','ai.s3','ai.s4'].forEach(k=>{
+      const q = T(k);
+      const chip = document.createElement('button');
+      chip.className='chip'; chip.type='button'; chip.textContent=q;
+      chip.addEventListener('click', ()=>{ chatInput.value=q; sendChat(); });
+      sHost.appendChild(chip);
+    });
+  }
+  function setChatHello(){ document.getElementById('chatHello').textContent = T('ai.hello'); }
+  buildSuggestions(); setChatHello();
+
+  function buildMarketContext(){
+    return {
+      today: todayISO(),
+      dataSource: LIVE.live ? ('live: Agmarknet via data.gov.in, latest date ' + LIVE.asOf) : 'sample (demo numbers)',
+      currency: 'INR per quintal',
+      crops: CROPS.map(c=>{
+        const prices = MANDIS.map(m=>({mandi:m, price:priceFor(c.id,m), source: livePrice(c.id,m)!=null ? 'live' : 'sample'}));
+        const ls = LIVE.live ? liveSeries(c.id,'avg') : null;
+        let series = (ls && ls.values.length>=2) ? ls.values : (LIVE.live ? null : trendFor(c.id,'avg',30));
+        const changePct = series ? Number((((series[series.length-1]-series[0])/series[0])*100).toFixed(1)) : null;
+        return { name:c.name, hindi:c.hi, mandiPrices:prices, changePctOverAvailableDays: changePct, daysOfHistory: series ? series.length : 1 };
+      })
+    };
+  }
+
+  function addBubble(text, who){
+    const div = document.createElement('div');
+    div.className = 'bubble ' + who;
+    div.textContent = text;
+    chatWindow.appendChild(div);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+    return div;
+  }
+
+  const chatTurns = [];
+  let sampleFn = null;
+  let sampleReady = false;
+  const sampleP = (window.claude && window.claude.use ? window.claude.use('sample') : Promise.resolve(null))
+    .then(fn=>{ sampleFn = fn; sampleReady = true; })
+    .catch(()=>{ sampleFn = null; sampleReady = true; });
+
+  function chatErrorCopy(code){
+    switch(code){
+      case 'not_granted':
+      case 'sampling_disabled':
+      case 'not_declared':
+      case 'capability_disabled':
+        return T('ai.e.notAllowed');
+      case 'rate_limited': return T('ai.e.rate');
+      case 'session_expired': return T('ai.e.session');
+      case 'prompt_too_large': return T('ai.e.large');
+      default: return T('ai.e.net');
+    }
+  }
+
+  async function askBackend(question, history, context){
+    let res;
+    try{
+      res = await fetch('/api/chat', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ question, history, context, lang: KM.lang })
+      });
+    }catch(e){
+      throw { code:'no_server' };
+    }
+    let data = null;
+    try{ data = await res.json(); }catch(e){}
+    if(!res.ok || !data || !data.text){
+      throw { code:'server_error', message: (data && data.error) || ('HTTP '+res.status) };
+    }
+    return data.text;
+  }
+
+  function chatLangRule(){
+    return KM.lang === 'hi'
+      ? "Reply ONLY in pure Hindi written in Devanagari script. Do not use English or Roman-script Hindi words (write mandi names, crop names and numbers in Devanagari/₹ as a Hindi speaker would). "
+      : "Reply ONLY in simple, plain English. Do not use Hindi or Hinglish words. ";
+  }
+
+  async function sendChat(){
+    const q = chatInput.value.trim();
+    if(!q) return;
+    const viaVoice = fromVoice; fromVoice = false;
+    stopSpeaking();
+    addBubble(q, 'user');
+    chatInput.value='';
+    chatSend.disabled = true;
+    const typingBubble = addBubble(T('common.typing'), 'bot typing');
+    const history = chatTurns.slice(-8);
+    try{
+      const context = buildMarketContext();
+      if(!sampleReady) await sampleP;
+      let text = '';
+      if(sampleFn){
+        // Running inside Claude (published artifact)
+        const rules = "You are the AI Farmer Assistant inside Kisan Mitra, an Indian agricultural market app. "+
+          "Use ONLY the following mandi price dataset (JSON; each price has a source of live=real government Agmarknet data or sample=demo numbers, say so when relevant) to answer questions about crop prices, mandi comparisons, and trends: "+
+          JSON.stringify(context) + ". Reply in 3-5 short sentences, in simple friendly language. " + chatLangRule() +
+          "Mention specific mandi names and rupee prices from the data when relevant. "+
+          "If the question needs information not in this dataset, give brief general farming advice and note that live price data isn't available for that. "+
+          "Plain text only, no markdown.";
+        const convo = history.map(t=>(t.role==='user'?'Farmer: ':'Assistant: ')+t.content).join("\n");
+        const input = [{ role:'user', content: rules + (convo ? "\n\nConversation so far:\n"+convo : "") + "\n\nFarmer's latest question: " + q }];
+        const r = await sampleFn(input, { cache:false, modelTier:'quick' });
+        text = (r && r.text || '').trim();
+      }else{
+        // Running locally / own hosting: use the Node backend (server.js)
+        text = (await askBackend(q, history, context)).trim();
+      }
+      if(!text) text = T('ai.fallback');
+      typingBubble.className='bubble bot';
+      typingBubble.textContent = text;
+      if(viaVoice) speak(text);
+      chatTurns.push({ role:'user', content:q });
+      chatTurns.push({ role:'assistant', content:text });
+    }catch(err){
+      typingBubble.remove();
+      let msg;
+      if(err && err.code==='no_server'){
+        msg = T('ai.noServer');
+      }else if(err && err.code==='server_error'){
+        msg = T('ai.serverErr',{msg: err.message || 'unknown'});
+      }else{
+        msg = chatErrorCopy(err && err.code);
+      }
+      addBubble(msg, 'bot');
+    }finally{
+      chatSend.disabled = false;
+    }
+  }
+  /* ---- Voice: speak your question (mic) and hear the answer ---- */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const chatMic = document.getElementById('chatMic'), chatSpk = document.getElementById('chatSpk');
+  let recog = null, listening = false, fromVoice = false, speakOn = true, micPh = null;
+  try{ speakOn = localStorage.getItem('km_speak') !== '0'; }catch(e){}
+  const voiceLang = ()=> (window.KM && KM.lang === 'hi') ? 'hi-IN' : 'en-IN';
+  function paintSpk(){ chatSpk.classList.toggle('off', !speakOn); chatSpk.textContent = speakOn ? '🔊' : '🔇'; chatSpk.title = T(speakOn ? 'ai.spk.on' : 'ai.spk.off'); }
+  function stopSpeaking(){ try{ window.speechSynthesis && speechSynthesis.cancel(); }catch(e){} }
+  function speak(text){
+    if(!speakOn || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+    try{
+      stopSpeaking();
+      const u = new SpeechSynthesisUtterance(text), lg = voiceLang();
+      u.lang = lg; u.rate = 0.95;
+      const v = speechSynthesis.getVoices().find(x=>x.lang && x.lang.replace('_','-').toLowerCase().startsWith(lg.slice(0,2).toLowerCase()));
+      if(v) u.voice = v;
+      speechSynthesis.speak(u);
+    }catch(e){}
+  }
+  function micUI(on){
+    listening = on; chatMic.classList.toggle('on', on);
+    if(on){ micPh = chatInput.placeholder; chatInput.placeholder = T('ai.mic.listening'); }
+    else if(micPh != null){ chatInput.placeholder = micPh; micPh = null; }
+  }
+  function micMsg(k){ addBubble(T(k), 'bot'); }
+  chatMic.addEventListener('click', ()=>{
+    if(listening){ try{ recog.stop(); }catch(e){} return; }
+    if(!SR){ micMsg('ai.mic.unsupported'); return; }
+    stopSpeaking();
+    recog = new SR(); recog.lang = voiceLang(); recog.interimResults = true; recog.continuous = false; recog.maxAlternatives = 1;
+    let finalText = '', failed = false;
+    recog.onresult = (e)=>{
+      let t = '';
+      for(let i=0;i<e.results.length;i++){ t += e.results[i][0].transcript; if(e.results[i].isFinal) finalText = t; }
+      chatInput.value = t;
+    };
+    recog.onerror = (e)=>{
+      failed = true;
+      if(e.error === 'not-allowed' || e.error === 'service-not-allowed') micMsg('ai.mic.denied');
+      else if(e.error === 'no-speech') micMsg('ai.mic.none');
+      else if(e.error !== 'aborted') micMsg('ai.mic.err');
+    };
+    recog.onend = ()=>{
+      micUI(false);
+      const q = (finalText || chatInput.value).trim();
+      if(!failed && q){ chatInput.value = q; fromVoice = true; sendChat(); }
+    };
+    try{ recog.start(); micUI(true); }catch(e){ micUI(false); micMsg('ai.mic.err'); }
+  });
+  chatSpk.addEventListener('click', ()=>{ speakOn = !speakOn; try{ localStorage.setItem('km_speak', speakOn ? '1' : '0'); }catch(e){} if(!speakOn) stopSpeaking(); paintSpk(); });
+  paintSpk();
+
+  chatSend.addEventListener('click', sendChat);
+  chatInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChat(); });
+
+  /* floating widget open / close */
+  const chatFab = document.getElementById('chatFab');
+  const chatPop = document.getElementById('chatPop');
+  function setChatOpen(open){
+    chatPop.hidden = !open;
+    chatPop.classList.toggle('open', open);
+    chatFab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if(!open){ stopSpeaking(); if(listening){ try{ recog.abort(); }catch(e){} } }
+    if(open){ chatWindow.scrollTop = chatWindow.scrollHeight; setTimeout(()=>chatInput.focus(), 50); }
+    else chatFab.focus();
+  }
+  chatFab.addEventListener('click', ()=>setChatOpen(true));
+  document.getElementById('chatClose').addEventListener('click', ()=>setChatOpen(false));
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && chatPop.classList.contains('open')) setChatOpen(false); });
+
+  /* ============ LANGUAGE SWITCH: redraw everything that was built by script ============ */
+  KM.onChange(()=>{
+    [cmpCrop, trendCrop, retCrop, fcCrop].forEach(fillCropSelect);
+    fillMandiSelect(trendMandi, true);
+    fillMandiSelect(retMandi, false);
+    fillMandiSelect(fcMandi, false);
+    fillSalesSelects(); renderSales();
+    fillBmSelects(); if(bmShown) bmRender();
+    MANDIS.forEach(m=>{ cmpChips[m].textContent = mn(m); });
+    renderTicker();
+    renderWelcome(); renderNav();
+    updateBanner();
+    if(document.getElementById('cmpResults').children.length) document.getElementById('cmpCompareBtn').click();
+    if(trendChart) renderTrend();
+    if(document.getElementById('wxGrid').dataset.loaded && WX_ALL){ drawWeatherGrid(); drawWeatherCustom(); }
+    if(!document.getElementById('fcOut').classList.contains('hidden')) document.getElementById('fcBtn').click();
+    setChatHello(); buildSuggestions(); paintSpk();
+    document.getElementById('wxResults').innerHTML = '';
+  });
+  KM.apply();   // body is parsed by now: fill all static text (and the page title) in the saved language
+  updateBanner();
+
+})();
+</script>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const T=(k,p)=>KM.t(k,p);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const li=a=>(a&&a.length)?'<ul>'+a.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'';
+  async function api(url,opt){const r=await fetch(url,opt);const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('Error '+r.status));return j;}
+
+  /* ---- Crop Doctor ---- */
+  let docImg=null;
+  function shrink(file){return new Promise((ok,bad)=>{const fr=new FileReader();fr.onerror=()=>bad(new Error(T('doc.readFail')));
+    fr.onload=()=>{const im=new Image();im.onerror=()=>bad(new Error(T('doc.badImg')));im.onload=()=>{
+      const k=Math.min(1,1024/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',0.8));};im.src=fr.result;};fr.readAsDataURL(file);});}
+  $('docFile').addEventListener('change',async e=>{const f=e.target.files[0];docImg=null;if(!f)return;
+    try{docImg=await shrink(f);$('docPrev').src=docImg;$('docPrev').classList.remove('hidden');}catch(err){$('docOut').textContent=err.message;}});
+  $('docGo').addEventListener('click',async()=>{
+    if(!docImg){$('docOut').textContent=T('doc.choose');return;}
+    $('docOut').textContent=T('common.analysing');$('docGo').disabled=true;
+    try{const {result:r}=await api('/api/diagnose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:docImg,crop:$('docCrop').value,lang:KM.lang})});
+      $('docOut').innerHTML=!r.is_plant?'<div class="km-card">'+esc(r.condition||T('doc.notPlant'))+'</div>':
+      '<div class="km-card"><div><b>'+esc(T('doc.cropName'))+':</b> '+esc(r.crop||r.plant||T('doc.unknown'))+'</div><div><b>'+esc(T('doc.plantName'))+':</b> <i>'+esc(r.plant||T('doc.unknown'))+'</i></div><h4>'+esc(T('doc.diagnosis'))+': '+esc(r.condition)+'</h4><span class="km-tag">'+esc(T('doc.conf'))+': '+esc(T('lvl.'+r.confidence))+'</span><span class="km-tag">'+esc(T('doc.sev'))+': '+esc(T('sev.'+r.severity))+'</span>'+
+      (r.confidence==='low'?'<p>'+esc(T('doc.uncertain'))+'</p>':'')+
+      (r.summary?'<p>'+esc(r.summary)+'</p>':'')+
+      '<b>'+esc(T('doc.symptoms'))+'</b>'+li(r.symptoms)+'<b>'+esc(T('doc.treatment'))+'</b>'+li(r.treatment)+'<b>'+esc(T('doc.prevention'))+'</b>'+li(r.prevention)+
+      '<p class="hint">'+esc(T('doc.disc'))+'</p></div>';
+    }catch(err){$('docOut').textContent=err.message;}finally{$('docGo').disabled=false;}});
+
+  /* ---- Agro-Climate ---- */
+  let agroInit=false;
+  const dayFmt=iso=>new Date(iso+'T00:00:00').toLocaleDateString(KM.locale(),{weekday:'short',day:'numeric',month:'short'});
+  async function agroLoad(){const d=$('agroDist').value;$('agroOut').textContent=T('common.loading');
+    try{const j=await api('/api/soil?district='+encodeURIComponent(d));
+      const lbl=T('agro.'+(j.status||'unknown'));
+      const unitCm=KM.lang==='hi'?'सेमी':'cm';
+      $('agroOut').innerHTML='<div class="km-card"><h4>'+esc(T('agro.root',{s:lbl}))+'</h4>'+j.layers.map(l=>{const v=l.value;return '<div>'+esc(T('agro.layer',{l:String(l.label).replace('cm',unitCm)}))+': '+(v==null?esc(T('agro.na')):(v*100).toFixed(1)+'%')+'</div><div class="km-bar"><i style="width:'+(v==null?0:Math.min(100,v/0.6*100))+'%"></i></div>';}).join('')+
+      '<p class="hint">'+esc(T('agro.note'))+'</p></div><h4>'+esc(T('agro.warnTitle'))+'</h4>'+
+      (j.warnings.length?j.warnings.map(w=>'<div class="km-card km-warn-'+esc(w.level)+'"><b>'+esc(dayFmt(w.day))+'</b> &mdash; '+esc(w.code?T('agro.w.'+w.code,{v:w.v}):w.text)+'</div>').join(''):'<div class="km-card">'+esc(T('agro.noWarn'))+'</div>');
+    }catch(err){$('agroOut').textContent=err.message;}}
+  let agroDistricts=[];
+  function agroFill(){const keep=$('agroDist').value;$('agroDist').innerHTML=agroDistricts.map(d=>'<option value="'+esc(d)+'">'+esc(KM.mandi(d))+'</option>').join('');if(keep)$('agroDist').value=keep;}
+  async function agroStart(){if(agroInit)return;agroInit=true;
+    try{const j=await api('/api/soil');agroDistricts=j.districts;agroFill();$('agroDist').addEventListener('change',agroLoad);agroLoad();}catch(err){agroInit=false;$('agroOut').textContent=err.message;}}
+  document.querySelectorAll('#wxSubnav .subnav-btn').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#wxSubnav .subnav-btn').forEach(x=>x.classList.toggle('active',x===b));
+    document.querySelectorAll('#panel-weather .sub-sec').forEach(s=>s.classList.toggle('active',s.id==='sub-'+b.dataset.sub));
+    if(b.dataset.sub==='soil')agroStart();
+  }));
+
+  /* ---- Yojana Setu (curated starter list; verify on official portals) ---- */
+  const NEEDS=['income','insurance','credit','irrigation','machinery','market','pension','soil','storage'];
+  const SCHEMES=[
+   {needs:['income'],land:true,u:'https://pmkisan.gov.in'},
+   {needs:['insurance'],land:false,u:'https://pmfby.gov.in'},
+   {needs:['credit'],land:false,u:'https://www.myscheme.gov.in'},
+   {needs:['irrigation'],land:true,u:'https://pmkusum.mnre.gov.in'},
+   {needs:['irrigation'],land:true,u:'https://pmksy.gov.in'},
+   {needs:['machinery'],land:false,u:'https://agrimachinery.nic.in'},
+   {needs:['market'],land:false,u:'https://enam.gov.in'},
+   {needs:['soil'],land:true,u:'https://soilhealth.dac.gov.in'},
+   {needs:['pension'],land:true,u:'https://maandhan.in'},
+   {needs:['storage'],land:false,u:'https://agriinfra.dac.gov.in'}];
+  function yjRender(){const sel=[...document.querySelectorAll('#yjNeeds input:checked')].map(i=>i.value),own=$('yjLand').checked;
+    const list=SCHEMES.map((s,i)=>Object.assign({i},s)).filter(s=>(!sel.length||s.needs.some(n=>sel.includes(n)))).sort((a,b)=>(own?0:(b.land?-1:0))-(own?0:(a.land?-1:0)));
+    $('yjOut').innerHTML=list.map(s=>'<div class="km-card"><h4>'+esc(T('sc.'+s.i+'.n'))+'</h4><p>'+esc(T('sc.'+s.i+'.d'))+'</p>'+(s.land&&!own?'<span class="km-tag">'+esc(T('yj.needsLand'))+'</span>':'')+
+      '<a href="'+esc(s.u)+'" target="_blank" rel="noopener noreferrer">'+esc(T('yj.portal'))+'</a></div>').join('')+
+      '<p class="hint">'+esc(T('yj.foot'))+'</p>';}
+  function yjBuild(){const keep=new Set([...document.querySelectorAll('#yjNeeds input:checked')].map(i=>i.value));
+    $('yjNeeds').innerHTML=NEEDS.map(k=>'<label><input type="checkbox" value="'+k+'"'+(keep.has(k)?' checked':'')+' /> '+esc(T('need.'+k))+'</label>').join('');
+    document.querySelectorAll('#yjNeeds input').forEach(i=>i.addEventListener('change',yjRender));yjRender();}
+  $('yjLand').addEventListener('change',yjRender);yjBuild();
+
+  KM.onChange(()=>{yjBuild();if(agroInit&&agroDistricts.length){agroFill();agroLoad();}$('docOut').textContent='';});
+
+})();
+</script>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const T=(k,p)=>KM.t(k,p);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const GEO={Gwalior:[26.2183,78.1828],Bhopal:[23.2599,77.4126],Indore:[22.7196,75.8577],Ujjain:[23.1765,75.7885],Sagar:[23.8388,78.7378],Jabalpur:[23.1815,79.9864],Morena:[26.4947,77.9930],Shivpuri:[25.4231,77.6600]};
+  /* Assumed average rates: Rs per quintal per km for a FULL vehicle. Sample values, not live quotes. */
+  const MODES=[
+    {k:'tr.v1',rate:0.40,cap:8,kmh:35},
+    {k:'tr.v2',rate:0.32,cap:15,kmh:40},
+    {k:'tr.v3',rate:0.22,cap:60,kmh:22},
+    {k:'tr.v4',rate:0.20,cap:100,kmh:45}];
+  const PERISHABLE=['tomato'];   // crop ids
+  /* Bill: freight is split by assumed shares (they add up to 100). Loading and mandi charges are separate, assumed averages. */
+  const SPLIT=[{k:'bill.fuel',p:38},{k:'bill.driver',p:17},{k:'bill.toll',p:12},{k:'bill.wear',p:18},{k:'bill.margin',p:15}];
+  const LOAD_PER_Q=5, MANDI_PCT=0.02, HANDLING_H=2;   // Rs per quintal (loading+unloading) | mandi fee+commission share of sale value | hours for loading + unloading
+  let billKey=null; const viaCache={};
+  const inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+  const km=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);
+    const x=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))*1.3;}; // x1.3: road is longer than a straight line
+  const stars=v=>{const half=Math.round(v*2)/2;let s='';for(let i=1;i<=5;i++)s+=half>=i?'★':(half>=i-0.5?'⯨':'☆');return s;};
+  const names=Object.keys(GEO);
+  function fillFrom(){const keep=$('trFrom').value;$('trFrom').innerHTML=names.map(n=>'<option value="'+n+'">'+esc(KM.mandi(n))+'</option>').join('');if(keep)$('trFrom').value=keep;}
+  fillFrom();
+  let rows=[];
+  function readRows(){
+    rows=[...document.querySelectorAll('#cmpResults .price-row')].map(r=>{
+      const pr=r.querySelector('.p');
+      return {mandi:r.dataset.m,price:parseInt((pr.textContent||'').replace(/[^\d]/g,''),10)};
+    }).filter(r=>GEO[r.mandi]&&r.price>0);
+  }
+  function render(){
+    const cropId=$('cmpCrop').value,crop=KM.cropId(cropId)||'';
+    const from=$('trFrom').value,to=$('trTo').value,qty=Math.max(1,Math.min(1000,parseFloat($('trQty').value)||0));
+    const row=rows.find(r=>r.mandi===to);if(!row||!qty){$('trOut').textContent='';$('trBillBox').classList.add('hidden');return;}
+    const dist=from===to?0:km(GEO[from],GEO[to]);
+    if(dist<1){$('trOut').innerHTML='<div class="km-card">'+esc(T('tr.same'))+'</div>';$('trBillBox').classList.add('hidden');return;}
+    const perish=PERISHABLE.includes(cropId);
+    const list=MODES.map(m=>{const v=Math.ceil(qty/m.cap);const cost=v*m.cap*m.rate*dist;return {m,v,cost,perQ:cost/qty,hrs:dist/m.kmh};});
+    const mn=a=>Math.min(...a),mx=a=>Math.max(...a);
+    const cs=list.map(x=>x.perQ),ts=list.map(x=>x.hrs);
+    const norm=(x,a)=>mx(a)===mn(a)?1:1-(x-mn(a))/(mx(a)-mn(a));
+    const wc=perish?0.4:0.7,wt=1-wc;
+    list.forEach(x=>{x.rating=1+4*(wc*norm(x.perQ,cs)+wt*norm(x.hrs,ts));});
+    list.sort((a,b)=>b.rating-a.rating);
+    const best=list[0], sel=list.find(x=>x.m.k===billKey)||best;
+    $('trOut').innerHTML='<div class="km-card"><b>'+esc(T('tr.route',{from:KM.mandi(from),to:KM.mandi(to),km:Math.round(dist),qty:qty,crop:crop}))+'</b>'+(perish?esc(T('tr.perish')):'')+'</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.9rem"><thead><tr style="text-align:left"><th>'+esc(T('tr.vehicle'))+'</th><th>'+esc(T('tr.rating'))+'</th><th>'+esc(T('tr.vehicles'))+'</th><th>'+esc(T('tr.cost'))+'</th><th>'+esc(T('tr.perQ'))+'</th><th>'+esc(T('tr.time'))+'</th></tr></thead><tbody>'+
+    list.map((x,i)=>'<tr class="tr-pick'+(x===sel?' sel':'')+'" data-k="'+x.m.k+'" style="border-top:1px solid #0002"><td>🚚 '+esc(T(x.m.k))+(i===0?' <span class="km-tag">'+esc(T('tr.bestFit'))+'</span>':'')+'</td><td title="'+x.rating.toFixed(1)+' / 5">'+stars(x.rating)+' '+x.rating.toFixed(1)+'</td><td>'+x.v+'</td><td>'+inr(x.cost)+'</td><td>'+inr(x.perQ)+'</td><td>~'+(x.hrs<10?x.hrs.toFixed(1):Math.round(x.hrs))+' '+esc(T('tr.h'))+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<div class="km-card" style="margin-top:10px">'+T('tr.net',{to:esc(KM.mandi(to)),price:inr(row.price),net:inr(row.price-best.perQ)})+'</div>'+
+    '<p class="hint">'+esc(T('bill.pick'))+'</p><p class="hint">'+esc(T('tr.foot',{perish:perish?T('tr.footPerish'):''}))+'</p>';
+    renderBill(sel,dist,row,qty,from,to,crop);
+  }
+  const hm=hrs=>{const m=Math.round(hrs*60),H=Math.floor(m/60),M=m%60;return (H?H+' '+T('tr.h')+' ':'')+M+' '+T('bill.min');};
+  function viaFor(from,to){
+    const key=from+'>'+to;
+    if(viaCache[key]!==undefined)return viaCache[key];
+    viaCache[key]='';
+    const tk=window.KM_USER&&window.KM_USER();
+    fetch('/api/route?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to)).then(r=>r.ok?r.json():null).then(d=>{
+      if(!d||!d.routes||!d.routes.length)return;
+      const r=d.routes.slice().sort((a,b)=>a.min-b.min)[0];viaCache[key]=r.refs&&r.refs.length?r.refs.join(', '):'';
+      const el=$('trVia');if(el&&el.dataset.key===key&&viaCache[key])el.textContent=T('bill.via',{r:viaCache[key]});
+    }).catch(()=>{});
+    return '';
+  }
+  function renderBill(x,dist,row,qty,from,to,crop){
+    const quote=parseFloat($('trQuote').value)||0, freight=Math.round(quote>0?quote:x.cost);
+    const parts=SPLIT.map(s=>({k:s.k,p:s.p,a:Math.round(freight*s.p/100)}));
+    parts[parts.length-1].a=freight-parts.slice(0,-1).reduce((s,q)=>s+q.a,0);   // rounding fix: parts add up exactly
+    const sale=Math.round(row.price*qty), loading=Math.round(LOAD_PER_Q*qty), mandi=Math.round(sale*MANDI_PCT), total=freight+loading+mandi, net=sale-total;
+    const drive=x.hrs, rest=Math.floor(drive/4)*0.5, tripH=drive+rest+HANDLING_H;
+    const st=($('trStart').value||'06:00').split(':'), startMin=(+st[0])*60+(+st[1]||0), arr=startMin+Math.round((1+drive+rest)*60);
+    const dd=Math.floor(arr/1440), am=arr%1440, pad=n=>String(n).padStart(2,'0'), arrTxt=pad(Math.floor(am/60))+':'+pad(am%60)+(dd>0?' '+T('bill.nextday',{d:dd}):'');
+    const via=viaFor(from,to), date=new Date().toLocaleDateString(KM.lang==='hi'?'hi-IN':'en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    $('trBillBox').classList.remove('hidden');
+    $('trBillCard').innerHTML='<div class="bill">'+
+      '<h5>'+esc(T('bill.title'))+'</h5><div class="sub">'+esc(T('bill.sub'))+' · '+esc(date)+'</div>'+
+      '<div class="meta"><div><b>'+esc(T('bill.route'))+'</b>'+esc(KM.mandi(from))+' → '+esc(KM.mandi(to))+'<br><span id="trVia" data-key="'+from+'>'+to+'" style="font-size:.8rem;color:var(--ink-soft)">'+(via?esc(T('bill.via',{r:via})):'')+'</span></div>'+
+      '<div><b>'+esc(T('bill.dist'))+'</b>~'+Math.round(dist)+' '+esc(T('bill.km'))+'</div>'+
+      '<div><b>'+esc(T('bill.veh'))+'</b>'+esc(T(x.m.k))+' × '+x.v+'</div>'+
+      '<div><b>'+esc(T('bill.load'))+'</b>'+qty+' '+esc(T('bill.q'))+(crop?' · '+esc(crop):'')+'</div></div>'+
+      '<table><thead><tr><th>'+esc(T('bill.item'))+'</th><th class="a">'+esc(T('bill.amt'))+'</th></tr></thead><tbody>'+
+      '<tr class="sec"><td colspan="2">'+esc(T('bill.freightH'))+'</td></tr>'+
+      parts.map(q=>'<tr><td>'+esc(T(q.k))+'<span class="basis">≈ '+q.p+'% '+esc(T('bill.ofFreight'))+'</span></td><td class="a">'+inr(q.a)+'</td></tr>').join('')+
+      '<tr><td><b>'+esc(T('bill.freight'))+'</b><span class="basis">'+esc(quote>0?T('bill.byQuote'):T('bill.byRate',{rate:x.m.rate}))+'</span></td><td class="a"><b>'+inr(freight)+'</b></td></tr>'+
+      '<tr class="sec"><td colspan="2">'+esc(T('bill.otherH'))+'</td></tr>'+
+      '<tr><td>'+esc(T('bill.loading'))+'<span class="basis">'+esc(T('bill.loadingB',{n:LOAD_PER_Q}))+'</span></td><td class="a">'+inr(loading)+'</td></tr>'+
+      '<tr><td>'+esc(T('bill.mandi'))+'<span class="basis">'+esc(T('bill.mandiB',{p:MANDI_PCT*100}))+'</span></td><td class="a">'+inr(mandi)+'</td></tr>'+
+      '<tr class="tot"><td>'+esc(T('bill.total'))+'<span class="basis">'+inr(total/qty)+' '+esc(T('bill.perq'))+'</span></td><td class="a">'+inr(total)+'</td></tr>'+
+      '<tr><td>'+esc(T('bill.sale',{price:inr(row.price),qty:qty}))+'</td><td class="a">'+inr(sale)+'</td></tr>'+
+      '<tr class="net"><td>'+esc(T('bill.net'))+'</td><td class="a">'+inr(net)+'</td></tr></tbody></table>'+
+      '<div class="timebox"><b>⏱ '+esc(T('bill.time'))+'</b><br>'+esc(T('bill.drive'))+': ~'+esc(hm(drive))+' · '+esc(T('bill.stops'))+': ~'+esc(hm(rest+HANDLING_H))+'<br><b>'+esc(T('bill.totalt'))+': ~'+esc(hm(tripH))+'</b> · '+esc(T('bill.arrive',{t:arrTxt}))+'</div>'+
+      '<p class="hint" style="margin:8px 0 0">'+esc(T('bill.note'))+'</p></div>';
+  }
+  function fillTo(){const keep=$('trTo').value;
+    $('trTo').innerHTML=rows.map(r=>'<option value="'+esc(r.mandi)+'">'+esc(KM.mandi(r.mandi))+'</option>').join('');
+    if(rows.some(r=>r.mandi===keep))$('trTo').value=keep;}
+  $('cmpCompareBtn').addEventListener('click',()=>{
+    readRows();
+    if(!rows.length){$('trCard').classList.add('hidden');return;}
+    fillTo();
+    $('trCard').classList.remove('hidden');render();
+  });
+  ['trFrom','trTo','trQty'].forEach(id=>$(id).addEventListener(id==='trQty'?'input':'change',render));
+  ['trQuote','trStart'].forEach(id=>$(id).addEventListener('input',render));
+  $('trOut').addEventListener('click',e=>{const tr=e.target.closest('tr[data-k]');if(tr){billKey=tr.dataset.k;render();$('trBillBox').scrollIntoView({behavior:'smooth',block:'nearest'});}});
+  $('trBillPrint').addEventListener('click',()=>{document.body.classList.add('print-bill');const done=()=>{document.body.classList.remove('print-bill');window.removeEventListener('afterprint',done);};window.addEventListener('afterprint',done);window.print();});
+  $('trBillMap').addEventListener('click',()=>{const f=$('rtFrom'),t=$('rtTo');if(f&&t){f.value=$('trFrom').value;t.value=$('trTo').value;f.dispatchEvent(new Event('change'));}document.querySelector('[data-tab="route"]').click();window.scrollTo({top:0,behavior:'smooth'});});
+  /* the compare button of the main script also re-runs on language change, which refreshes rows + this card */
+  KM.onChange(()=>{fillFrom();fillTo();if(!$('trCard').classList.contains('hidden'))render();});
+})();
+</script>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id), T=(k,p)=>KM.t(k,p), esc=s=>KM.esc(s);
+  let data=null, loading=false, openRate=null;
+  const user=()=>window.KM_USER&&window.KM_USER();
+  const tok=()=>{const u=user();return u&&u.token;};
+  async function api(url,body){
+    const r=await fetch(url,{method:body?'POST':'GET',headers:Object.assign({'Authorization':'Bearer '+tok()},body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined});
+    const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('Error '+r.status));return j;}
+  function fillSelects(){
+    if(!data)return;
+    const ka=$('tpArea').value,kv=$('tpVeh').value,kr=$('tpVehReg').value;
+    $('tpArea').innerHTML='<option value="">'+esc(T('tr.anyArea'))+'</option>'+data.districts.map(d=>'<option value="'+esc(d)+'">'+esc(KM.mandi(d))+'</option>').join('');
+    $('tpVeh').innerHTML='<option value="">'+esc(T('tr.anyVeh'))+'</option>'+data.vehicles.map(v=>'<option value="'+v+'">'+esc(T('veh.'+v))+'</option>').join('');
+    $('tpVehReg').innerHTML=data.vehicles.map(v=>'<option value="'+v+'">'+esc(T('veh.'+v))+'</option>').join('');
+    $('tpArea').value=ka;$('tpVeh').value=kv;if(kr)$('tpVehReg').value=kr;
+    if(!$('tpAreas').children.length)$('tpAreas').innerHTML=data.districts.map(d=>'<label><input type="checkbox" value="'+esc(d)+'" /> <span>'+esc(KM.mandi(d))+'</span></label>').join('');
+    else [...$('tpAreas').querySelectorAll('label')].forEach(l=>{l.querySelector('span').textContent=KM.mandi(l.querySelector('input').value);});
+  }
+  const stars=n=>'\u2605'.repeat(Math.round(n))+'\u2606'.repeat(5-Math.round(n));
+  function card(t){
+    const tel=t.phone.replace(/\D/g,''),wa='https://wa.me/91'+tel+'?text='+encodeURIComponent(T('tr.waMsg'));
+    const rating=t.count?'<b>'+stars(t.avg)+'</b> '+esc(T('tr.ratingLine',{avg:t.avg,count:t.count})):'<span class="km-tag">'+esc(T('tr.new'))+'</span>';
+    return '<div class="km-card"><h4>'+esc(t.name)+(t.mine?' <span class="km-tag">'+esc(T('tr.yours'))+'</span>':'')+(t.demo?' <span class="km-tag">'+esc(T('tr.demo'))+'</span>':'')+'</h4>'+
+      (t.ownerName?'<div>'+esc(T('tr.owner',{name:t.ownerName}))+'</div>':'')+
+      '<div>'+rating+'</div>'+
+      '<div>'+esc(T('veh.'+t.vehicle))+' &middot; '+esc(T('tr.cap',{n:t.capacity}))+'</div>'+
+      '<div>'+esc(T('tr.areas',{list:t.areas.map(a=>KM.mandi(a)).join(', ')}))+'</div>'+
+      (t.note?'<div>'+esc(t.note)+'</div>':'')+
+      (t.comments.length?'<ul>'+t.comments.map(c=>'<li>'+stars(c.stars)+' '+esc(c.text)+'</li>').join('')+'</ul>':'')+
+      (t.demo?'<div>'+esc(T('tr.phoneShown',{phone:t.phone}))+'</div><div class="hint">'+esc(T('tr.demoNote'))+'</div><div class="btn-row" style="margin-top:8px"><button class="btn" type="button" data-rate="'+esc(t.id)+'">'+esc(T('tr.rate'))+'</button></div>':
+      t.mine?'<div>'+esc(T('tr.phoneShown',{phone:t.phone}))+'</div>':'<div class="btn-row" style="margin-top:8px"><a class="btn btn-primary" href="tel:+91'+esc(tel)+'">'+esc(T('tr.call'))+' '+esc(t.phone)+'</a> <a class="btn" href="'+esc(wa)+'" target="_blank" rel="noopener noreferrer">'+esc(T('tr.wa'))+'</a> '+
+        '<button class="btn" type="button" data-rate="'+esc(t.id)+'">'+esc(T('tr.rate'))+'</button> <button class="btn" type="button" data-report="'+esc(t.id)+'">'+esc(T('tr.report'))+'</button></div>')+
+      (openRate===t.id?'<div class="row" style="margin-top:8px"><div class="field"><label>'+esc(T('tr.stars'))+'</label><select data-stars="'+esc(t.id)+'">'+[5,4,3,2,1].map(n=>'<option value="'+n+'"'+(n===(t.myStars||5)?' selected':'')+'>'+stars(n)+'</option>').join('')+'</select></div><div class="field"><label>'+esc(T('tr.comment'))+'</label><input data-comment="'+esc(t.id)+'" maxlength="200" /></div><button class="btn btn-primary" type="button" data-send="'+esc(t.id)+'">'+esc(T('tr.submitRating'))+'</button></div>':'')+
+      '</div>';
+  }
+  function render(){
+    if(!data)return;
+    data.items.sort((a,b)=>(b.mine?1:0)-(a.mine?1:0));
+    $('tpList').innerHTML=(data.items.some(t=>t.demo)?'<div class="km-card"><b>'+esc(T('tr.demoBanner'))+'</b></div>':'')+(data.items.length?data.items.map(card).join(''):'<div class="km-card">'+esc(T('tr.empty'))+'</div>');
+    const mine=data.items.find(t=>t.mine);$('tpRemove').classList.toggle('hidden',!mine);$('tpShare').classList.toggle('hidden',!mine);if(!mine&&shWatch!=null)shStop();
+    if(mine&&!$('tpName').value&&!$('tpMobile').value){   /* show my saved listing in the form so it can be edited */
+      $('tpName').value=mine.name;$('tpOwner').value=mine.ownerName||'';$('tpMobile').value=mine.phone;$('tpCap').value=mine.capacity;$('tpNote').value=mine.note||'';
+      $('tpVehReg').value=mine.vehicle;$('tpAreas').querySelectorAll('input').forEach(i=>{i.checked=mine.areas.includes(i.value);});$('tpConsent').checked=true;}
+  }
+  async function load(){
+    if(!tok()){$('tpList').textContent=T('tr.loginNeeded');return;}
+    if(loading)return;loading=true;$('tpList').textContent=T('common.loading');
+    try{
+      const q='?area='+encodeURIComponent($('tpArea').value||'')+'&vehicle='+encodeURIComponent($('tpVeh').value||'');
+      data=await api('/api/transporters'+q);fillSelects();render();
+    }catch(err){$('tpList').textContent=err.message;}finally{loading=false;}
+  }
+  document.querySelector('[data-tab="transport"]').addEventListener('click',load);
+  $('tpArea').addEventListener('change',load);$('tpVeh').addEventListener('change',load);
+  $('tpList').addEventListener('click',async e=>{
+    const d=e.target.dataset||{};
+    try{
+      if(d.rate){openRate=openRate===d.rate?null:d.rate;render();}
+      else if(d.report){await api('/api/transporters/report',{id:d.report});$('tpMsg').textContent=T('tr.reported');await load();}
+      else if(d.send){const st=document.querySelector('[data-stars="'+d.send+'"]').value,cm=document.querySelector('[data-comment="'+d.send+'"]').value;
+        await api('/api/transporters/rate',{id:d.send,stars:Number(st),comment:cm});openRate=null;$('tpMsg').textContent=T('tr.thanks');await load();}
+    }catch(err){$('tpMsg').textContent=err.message;}});
+  $('tpSave').addEventListener('click',async()=>{
+    const areas=[...$('tpAreas').querySelectorAll('input:checked')].map(i=>i.value);
+    if(!$('tpConsent').checked){$('tpMsg').textContent=T('tr.f.errConsent');return;}
+    if(!areas.length){$('tpMsg').textContent=T('tr.f.errAreas');return;}
+    try{await api('/api/transporters',{name:$('tpName').value,ownerName:$('tpOwner').value,mobile:$('tpMobile').value,vehicle:$('tpVehReg').value,capacity:$('tpCap').value,areas,note:$('tpNote').value,consent:true});
+      $('tpArea').value='';$('tpVeh').value='';$('tpMsg').textContent=T('tr.f.saved');await load();const mineCard=[...document.querySelectorAll('#tpList .km-card')].find(c=>c.querySelector('h4')&&c.textContent.includes(T('tr.yours')));(mineCard||$('tpList')).scrollIntoView({behavior:'smooth',block:'center'});}catch(err){$('tpMsg').textContent=err.message;}});
+  $('tpRemove').addEventListener('click',async()=>{try{await api('/api/transporters/remove',{});['tpName','tpOwner','tpMobile','tpCap','tpNote'].forEach(i=>{$(i).value='';});$('tpConsent').checked=false;$('tpAreas').querySelectorAll('input').forEach(i=>{i.checked=false;});$('tpMsg').textContent=T('tr.removed');await load();}catch(err){$('tpMsg').textContent=err.message;}});
+  $('trFindBtn').addEventListener('click',()=>{
+    document.querySelector('[data-tab="transport"]').click();
+    const f=$('trFrom').value;const set=()=>{if([...$('tpArea').options].some(o=>o.value===f)){$('tpArea').value=f;load();}};
+    setTimeout(set,400);});
+
+  /* ---- Share my live location (transporter side) ---- */
+  let shWatch=null, shLast=0, shSent=0, shTimer=null;
+  const shMsg=(k,p)=>{$('tpShareMsg').textContent=k?T(k,p):'';};
+  function shRefresh(){ if(shWatch!=null){ shMsg('tr.sh.on',{s:shSent?Math.round((Date.now()-shSent)/1000):0}); } }
+  async function shStop(){
+    if(shWatch!=null){navigator.geolocation.clearWatch(shWatch);shWatch=null;}
+    clearInterval(shTimer);shTimer=null;
+    $('tpShareBtn').textContent=T('tr.sh.start');
+    try{await api('/api/transporters/location',{stop:true});}catch(e){}
+    shMsg('tr.sh.off');
+  }
+  async function shStart(){
+    if(!navigator.geolocation){shMsg('tr.sh.unsupported');return;}
+    if(!window.isSecureContext){shMsg('tr.sh.https');return;}
+    shMsg('tr.sh.wait');
+    shWatch=navigator.geolocation.watchPosition(async pos=>{
+      const now=Date.now(); if(now-shLast<4000)return; shLast=now;
+      const c=pos.coords;
+      try{await api('/api/transporters/location',{lat:c.latitude,lng:c.longitude,speed:c.speed==null?null:c.speed*3.6,heading:c.heading});shSent=Date.now();shRefresh();}
+      catch(err){$('tpShareMsg').textContent=err.message;}
+    },err=>{ if(err&&err.code===1){shStop();shMsg('tr.sh.denied');} },{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
+    $('tpShareBtn').textContent=T('tr.sh.stop');
+    shTimer=setInterval(shRefresh,1000);
+  }
+  $('tpShareBtn').addEventListener('click',()=>{ shWatch==null?shStart():shStop(); });
+  KM.onChange(()=>{fillSelects();render();});
+})();
+</script>
+<script src="/routemap.js"></script>
+</body>
+</html>
